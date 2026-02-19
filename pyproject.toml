@@ -1,0 +1,29 @@
+[project]
+name = "safe_control_density"
+version = "0.1.0"
+description = "Time-varying density feedback control examples"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=1.26.4",
+    "matplotlib>=3.7",
+    "scipy>=1.11",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = [
+    "density_utils",
+    "density_utils.controllers",
+    "density_utils.density",
+    "density_utils.dynamics",
+    "density_utils.sim",
+    "density_utils.utils",
+]
+
+[tool.uv]
+dev-dependencies = []
+

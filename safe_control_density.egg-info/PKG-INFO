@@ -1,0 +1,38 @@
+Metadata-Version: 2.4
+Name: safe_control_density
+Version: 0.1.0
+Summary: Time-varying density feedback control examples
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: numpy>=1.26.4
+Requires-Dist: matplotlib>=3.7
+Requires-Dist: scipy>=1.11
+
+# Safe Control Density (Python)
+
+This folder contains a lightweight Python port of the time-varying density
+feedback controller with robotics-style examples inspired by the
+`safe_control` repo.
+
+## Quick start
+
+Create a virtual environment, install, and run an example:
+
+```bash
+cd safe_control_density
+python -m venv .venv
+.venv\Scripts\activate
+pip install -e .
+python examples/single_integrator/single_integrator_static_obstacle.py
+```
+
+## Structure
+
+- `density_utils/`: core density, dynamics, controllers, and simulation utilities
+- `examples/`: runnable scripts similar to safe_control examples
+
+## Notes
+
+- Density gradients use finite differences for speed and simplicity.
+- The first example targets a 2D single-integrator with a static obstacle.
+
