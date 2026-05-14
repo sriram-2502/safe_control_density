@@ -44,3 +44,80 @@ def density_grad(x, goal, alpha, obstacles, eps=1e-3):
         x,
         eps=eps,
     )
+
+
+def full_state_density_value(
+    x,
+    goal,
+    alpha,
+    obstacles,
+    *,
+    position_indices=(0, 1),
+    P=None,
+    min_v=1e-6,
+):
+    """Compute ``rho(x) = Phi(position) / V(x)^alpha``.
+
+    ``Phi`` is the obstacle bump product evaluated on the position entries of
+    the state, while ``V`` is a quadratic full-state Lyapunov function around
+    ``goal``.  This matches the CDF construction used in the MPC-CDF examples
+    while still supporting 2D obstacle geometry.
+    """
+    x = np.asarray(x, dtype=float)
+    goal = np.asarray(goal, dtype=float)
+    if goal.shape != x.shape:
+        raise ValueError("goal must have the same dimension as x")
+
+    if P is None:
+        P = np.eye(x.size, dtype=float)
+    else:
+        P = np.asarray(P, dtype=float)
+    if P.shape != (x.size, x.size):
+        raise ValueError("P must have shape (state_dim, state_dim)")
+
+    err = x - goal
+    v = max(float(err @ P @ err), float(min_v))
+    if isinstance(position_indices, slice):
+        pos = x[position_indices]
+    else:
+        pos = x[np.asarray(position_indices, dtype=int)]
+
+    phi = 1.0
+    for obs in obstacles:
+        phi *= p_norm_bump(
+            pos,
+            obs.center,
+            obs.r1,
+            obs.r2,
+            p=obs.p,
+            scale=obs.scale,
+            angle=obs.angle,
+        )
+    return phi / (v ** float(alpha))
+
+
+def full_state_density_grad(
+    x,
+    goal,
+    alpha,
+    obstacles,
+    *,
+    position_indices=(0, 1),
+    P=None,
+    min_v=1e-6,
+    eps=1e-3,
+):
+    """Finite-difference gradient of the full-state CDF density."""
+    return finite_difference_grad(
+        lambda x_eval: full_state_density_value(
+            x_eval,
+            goal,
+            alpha,
+            obstacles,
+            position_indices=position_indices,
+            P=P,
+            min_v=min_v,
+        ),
+        x,
+        eps=eps,
+    )
