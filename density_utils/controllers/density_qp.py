@@ -305,6 +305,7 @@ def solve_density_qp(
     dt=0.02,
     saturation=2.0,
     cdf_rate=0.1,
+    gamma_rho=None,
     slack_weight=1e4,
     control_weight=1.0,
     min_density=1e-10,
@@ -331,9 +332,12 @@ def solve_density_qp(
     ``density_grad_fn`` to use a full-state CDF such as ``Phi / V^alpha``.
 
     ``constraint_mode="continuous"`` enforces
-    ``grad(rho) @ (f + g u) >= cdf_rate * rho``.  ``"discrete"`` enforces a
-    one-step linearization of the MPC-CDF condition
-    ``rho_next - rho + dt * div(f, g) * rho >= dt * cdf_rate * rho``.
+    ``grad(rho) @ (f + g u) >= cdf_rate * rho``.
+
+    ``constraint_mode="discrete"`` enforces a discrete-time density residual
+    ``rho(x_{k+1}) >= (1 - gamma_rho) rho(x_k)`` using the provided
+    ``next_state_fn`` and the density function evaluated at the preview state.
+    If ``gamma_rho`` is omitted it defaults to ``min(max(dt * cdf_rate, 0.0), 1.0)``.
     """
     x = np.asarray(x, dtype=float)
     goal = np.asarray(goal, dtype=float)
@@ -344,6 +348,15 @@ def solve_density_qp(
         density_fn = density_value
     if density_grad_fn is None and density_fn is density_value:
         density_grad_fn = density_grad
+    if constraint_mode not in ("continuous", "discrete"):
+        raise ValueError("constraint_mode must be 'continuous' or 'discrete'")
+    if gamma_rho is None:
+        gamma_rho = float(np.clip(dt * cdf_rate, 0.0, 1.0))
+    else:
+        gamma_rho = float(gamma_rho)
+    if constraint_mode == "discrete" and not (0.0 < gamma_rho <= 1.0):
+        raise ValueError("gamma_rho must be in the interval (0, 1] for discrete constraint mode")
+
     model = _evaluate_control_affine_dynamics(
         x,
         dynamics=dynamics,
@@ -381,15 +394,16 @@ def solve_density_qp(
         result = DensityQPResult(u=u, success=True, slack=np.zeros(0), objective=0.0, message="")
         return result if return_info else result.u
 
+    constraints = []
     a_rows = []
     b_vals = []
-    if constraint_mode not in ("continuous", "discrete"):
-        raise ValueError("constraint_mode must be 'continuous' or 'discrete'")
+    slack_init = []
     u_ref = _clip_to_bounds(u_nom, bounds)
+
     for obs in obstacles:
         rho = _density_value_for_obstacle(density_fn, x, goal, alpha, obs)
         if rho <= min_density:
-            continue
+            rho = float(min_density)
         if constraint_mode == "continuous":
             grad = _density_grad_for_obstacle(density_fn, density_grad_fn, x, goal, alpha, obs)
             if grad.shape != x.shape:
@@ -402,7 +416,9 @@ def solve_density_qp(
             if next_state_fn is None:
                 next_state = lambda u_eval: x + dt * (drift + control_matrix @ u_eval)
             else:
-                next_state = lambda u_eval: np.asarray(next_state_fn(x, u_eval, dt), dtype=float)
+                next_state = lambda u_eval, next_state_fn=next_state_fn: np.asarray(
+                    next_state_fn(x, u_eval, dt), dtype=float
+                )
 
             rho_next_ref = _density_value_for_obstacle(
                 density_fn,
@@ -411,42 +427,58 @@ def solve_density_qp(
                 alpha,
                 obs,
             )
-            grad_u = finite_difference_grad(
-                lambda u_eval: _density_value_for_obstacle(
-                    density_fn,
-                    next_state(u_eval),
-                    goal,
-                    alpha,
-                    obs,
-                ),
-                u_ref,
-                eps=1e-4,
-            )
-            if np.linalg.norm(grad_u) <= 1e-12:
-                continue
-            div_val = _eval_scalar(divergence, x, "divergence", default=0.0)
-            a_rows.append(grad_u)
-            b_vals.append(
-                dt * cdf_rate * rho
-                - (rho_next_ref - rho)
-                - dt * div_val * rho
-                + float(grad_u @ u_ref)
-            )
+            slack_init.append(max(0.0, (1.0 - gamma_rho) * rho - rho_next_ref))
 
-    if not a_rows:
-        u = _clip_to_bounds(u_nom, bounds)
-        result = DensityQPResult(u=u, success=True, slack=np.zeros(0), objective=0.0, message="")
-        return result if return_info else result.u
+            slack_index = control_dim + len(constraints)
 
-    a_mat = np.vstack(a_rows)
-    b_vec = np.asarray(b_vals, dtype=float)
-    m = b_vec.size
+            def make_constraint(obs=obs, next_state=next_state, rho_current=rho, slack_index=slack_index):
+                def constraint(z):
+                    rho_next_eval = _density_value_for_obstacle(
+                        density_fn,
+                        next_state(z[:control_dim]),
+                        goal,
+                        alpha,
+                        obs,
+                    )
+                    return rho_next_eval - (1.0 - gamma_rho) * rho_current + z[slack_index]
+
+                return constraint
+
+            constraints.append({"type": "ineq", "fun": make_constraint()})
+
+    if constraint_mode == "continuous":
+        if not a_rows:
+            u = _clip_to_bounds(u_nom, bounds)
+            result = DensityQPResult(u=u, success=True, slack=np.zeros(0), objective=0.0, message="")
+            return result if return_info else result.u
+
+        a_mat = np.vstack(a_rows)
+        b_vec = np.asarray(b_vals, dtype=float)
+        m = b_vec.size
+        slack_init = np.maximum(0.0, b_vec - a_mat @ u_ref)
+        constraints = [
+            {
+                "type": "ineq",
+                "fun": lambda z: a_mat @ z[:control_dim] + z[control_dim:] - b_vec,
+                "jac": lambda z: np.hstack([a_mat, np.eye(m)]),
+            }
+        ]
+    else:
+        if not constraints:
+            u = _clip_to_bounds(u_nom, bounds)
+            result = DensityQPResult(u=u, success=True, slack=np.zeros(0), objective=0.0, message="")
+            return result if return_info else result.u
+
+        m = len(constraints)
+        if len(slack_init) != m:
+            slack_init = [0.0] * m
+        slack_init = np.asarray(slack_init, dtype=float)
+
     w_u = _as_weight_matrix(control_weight, control_dim)
     slack_weight = float(slack_weight)
 
     u0 = _clip_to_bounds(u_nom, bounds)
-    s0 = np.maximum(0.0, b_vec - a_mat @ u0)
-    z0 = np.concatenate([u0, s0])
+    z0 = np.concatenate([u0, slack_init])
 
     def objective(z):
         u = z[:control_dim]
@@ -460,13 +492,6 @@ def solve_density_qp(
         grad_z[control_dim:] = slack_weight * z[control_dim:]
         return grad_z
 
-    constraints = [
-        {
-            "type": "ineq",
-            "fun": lambda z: a_mat @ z[:control_dim] + z[control_dim:] - b_vec,
-            "jac": lambda z: np.hstack([a_mat, np.eye(m)]),
-        }
-    ]
     opt_bounds = bounds + [(0.0, None)] * m
 
     with warnings.catch_warnings():
@@ -743,6 +768,7 @@ def solve_double_integrator_density_qp(
         saturation=ctrl_multiplier,
         cdf_rate=cdf_rate,
         slack_weight=slack_weight,
+        constraint_mode="discrete",
         return_info=True,
     )
     v_des = qp.u

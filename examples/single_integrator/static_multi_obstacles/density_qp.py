@@ -7,6 +7,7 @@ from matplotlib import animation, patches
 
 from density_utils.controllers import solve_density_qp
 from density_utils.density import Obstacle
+from density_utils.dynamics import single_integrator_step
 from density_utils.sim import forward_euler
 from density_utils.utils import plot_goal, plot_obstacle, plot_start
 from density_utils.utils.timing import TimedBlock
@@ -125,6 +126,8 @@ def main():
                 saturation=saturation,
                 cdf_rate=cdf_rate,
                 slack_weight=slack_weight,
+                constraint_mode="discrete",
+                next_state_fn=single_integrator_step,
                 return_info=True,
             )
             u = qp.u

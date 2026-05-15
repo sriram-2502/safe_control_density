@@ -479,7 +479,7 @@ def scenario_config(name):
         return {
             "dt": 0.01,
             "preview_dt": 0.35,
-            "constraint_mode": "continuous",
+            "constraint_mode": "discrete",
             "steps": 4000,
             "alpha": 0.4,
             "rad_from_goal": 0.01,
@@ -524,7 +524,7 @@ def scenario_config(name):
         return {
             "dt": 0.001,
             "preview_dt": 0.2,
-            "constraint_mode": "continuous",
+            "constraint_mode": "discrete",
             "steps": 40000,
             "alpha": 0.4,
             "rad_from_goal": 0.01,

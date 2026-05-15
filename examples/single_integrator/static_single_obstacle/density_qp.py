@@ -92,6 +92,7 @@ def main():
                 saturation=saturation,
                 cdf_rate=cdf_rate,
                 slack_weight=slack_weight,
+                constraint_mode="continuous",
                 return_info=True,
             )
             u = qp.u

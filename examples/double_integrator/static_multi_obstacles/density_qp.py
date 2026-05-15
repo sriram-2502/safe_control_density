@@ -98,12 +98,6 @@ def main():
     control_margin = 0.35
     start = np.array([-2.1, -2.1])
     goal = np.array([2.0, 2.0])
-    waypoints = [
-        np.array([-2.4, -0.2]),
-        np.array([-2.4, 2.4]),
-        np.array([2.0, 2.4]),
-        goal,
-    ]
     obstacles, inflated_obstacles, control_obstacles = _make_obstacles(agent_radius, control_margin)
     brake_margin = 0.05
     brake_obstacles = [
@@ -136,19 +130,9 @@ def main():
     timer = TimedBlock(enabled=log_timing)
     print_interval = 500
     stop_count = 0
-    waypoint_idx = 0
     for step in range(steps):
-        nav_goal = waypoints[waypoint_idx]
-        dist = np.linalg.norm(state[:2] - nav_goal)
+        nav_goal = goal
         final_dist = np.linalg.norm(state[:2] - goal)
-        if (
-            waypoint_idx < len(waypoints) - 1
-            and dist < 0.2
-            and np.linalg.norm(state[2:]) < 0.5
-        ):
-            waypoint_idx += 1
-            nav_goal = waypoints[waypoint_idx]
-            dist = np.linalg.norm(state[:2] - nav_goal)
         candidate_indices = [
             idx
             for idx, obs in enumerate(control_obstacles)
@@ -199,7 +183,7 @@ def main():
 
         speed = np.linalg.norm(state[2:])
         if stop_when_stable:
-            if waypoint_idx == len(waypoints) - 1 and final_dist < stop_tol and speed < stop_tol:
+            if final_dist < stop_tol and speed < stop_tol:
                 stop_count += 1
                 if stop_count >= stop_steps:
                     print(f"stopping at iter={step} (stable within stop_tol)")
@@ -208,7 +192,7 @@ def main():
                 stop_count = 0
         if step % print_interval == 0:
             print(
-                f"iter={step} dist_to_goal={final_dist:.3f} waypoint={waypoint_idx + 1}/{len(waypoints)} "
+                f"iter={step} dist_to_goal={final_dist:.3f} "
                 f"speed={speed:.3f} "
                 f"clearance={clearance:.3f} active={len(active_indices)} "
                 f"slack={slacks[-1]:.2e}"
