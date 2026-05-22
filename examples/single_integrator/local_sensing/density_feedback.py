@@ -1,34 +1,20 @@
 from pathlib import Path
 import argparse
+import sys
 
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib import animation, patches
 
 from density_utils.controllers import density_feedback_control
 from density_utils.density import Obstacle
 from density_utils.sim import forward_euler
-from density_utils.utils import plot_goal, plot_obstacle, plot_start
 from density_utils.utils.timing import TimedBlock
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from _plotting import plot_single_integrator_results
 
 
 def _angle_wrap(angle):
     return (angle + np.pi) % (2.0 * np.pi) - np.pi
-
-
-def calculate_fov_points(position, heading, fov_angle, cam_range):
-    half_fov = fov_angle / 2.0
-    left_angle = heading - half_fov
-    right_angle = heading + half_fov
-    left_point = (
-        position[0] + cam_range * np.cos(left_angle),
-        position[1] + cam_range * np.sin(left_angle),
-    )
-    right_point = (
-        position[0] + cam_range * np.cos(right_angle),
-        position[1] + cam_range * np.sin(right_angle),
-    )
-    return left_point, right_point
 
 
 def detect_sensed_obstacles(pos, heading, obstacles, cam_range, fov_angle):
@@ -49,28 +35,10 @@ def detect_sensed_obstacles(pos, heading, obstacles, cam_range, fov_angle):
     return [obs for _, obs in sensed]
 
 
-def sample_obstacle_boundary(obs, num=120):
-    """Sample obstacle boundary for visualization."""
-    theta = np.linspace(0.0, 2.0 * np.pi, num=num, endpoint=True)
-    c = np.cos(theta)
-    s = np.sin(theta)
-    p = float(obs.p)
-    x = np.sign(c) * (np.abs(c) ** (2.0 / p))
-    y = np.sign(s) * (np.abs(s) ** (2.0 / p))
-    pts = np.stack([x, y], axis=1) * obs.r1
-    if obs.scale is not None:
-        pts = pts * np.asarray(obs.scale, dtype=float)[None, :]
-    if obs.angle:
-        ca = np.cos(obs.angle)
-        sa = np.sin(obs.angle)
-        rot = np.array([[ca, -sa], [sa, ca]])
-        pts = pts @ rot.T
-    return pts + obs.center[None, :]
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--save-gif", action="store_true", help="Save animation as GIF.")
+    parser.add_argument("--no-plot", action="store_true", help="Run without opening plots.")
     args = parser.parse_args()
 
     dt = 0.001
@@ -84,7 +52,7 @@ def main():
     q_lqr = 4.0
     r_lqr = 1.0
     saturation = 4.0
-    animate = True
+    animate = not args.no_plot
     save_animation = args.save_gif
     animation_stride = 50
     animation_fps = 15
@@ -219,143 +187,28 @@ def main():
             std_ms = control_times.std() * 1e3
             print(f"avg_iteration_outside_goal={mean_ms:.3f} [ms] std={std_ms:.3f} [ms]")
 
-    t_state = dt * np.arange(len(traj))
-    t_u = dt * np.arange(len(controls))
-    fig_ts, axes = plt.subplots(2, 2, figsize=(8, 6))
-    axes[0, 0].plot(t_state, traj[:, 0], linewidth=1.8, label="x [m]")
-    axes[0, 1].plot(t_state, traj[:, 1], linewidth=1.8, label="y [m]")
-    axes[1, 0].plot(t_u, controls[:, 0], linewidth=1.8, label="u_x [m/s]")
-    axes[1, 1].plot(t_u, controls[:, 1], linewidth=1.8, label="u_y [m/s]")
-    for ax in axes.ravel():
-        ax.set_xlabel("time [s]")
-        ax.grid(True, linestyle="--", alpha=0.4)
-        if ax.has_data():
-            ax.legend(loc="best")
-
-    fig, ax = plt.subplots(figsize=(6, 6))
-    plot_start(ax, start)
-    plot_goal(ax, goal)
-    for obs in obstacles:
-        plot_obstacle(
-            ax,
-            obs.center,
-            obs.r1,
-            obs.r2,
-            p=obs.p,
-            scale=obs.scale,
-            angle=obs.angle,
-            color="0.3",
-            fill=True,
+    if not args.no_plot:
+        plot_single_integrator_results(
+            traj=traj,
+            controls=controls,
+            dt=dt,
+            start=start,
+            goal=goal,
+            obstacles=obstacles,
+            agent_radius=agent_radius,
+            title="Single Integrator - Local Sensing Density Feedback",
+            animate=animate,
+            save_animation=save_animation,
+            animation_path=animation_path,
+            animation_stride=animation_stride,
+            animation_fps=animation_fps,
+            headings=headings,
+            inflated_obstacles=inflated_obstacles,
+            fov_angle=fov_angle,
+            cam_range=cam_range,
+            max_sensed=max_sensed,
+            animation_interval=15,
         )
-
-    ax.set_aspect("equal", adjustable="box")
-    ax.set_xlabel("x")
-    ax.set_ylabel("y")
-    ax.set_title("Single Integrator - Local Sensing Density")
-    ax.grid(True, linestyle="--", alpha=0.4)
-
-    if animate:
-        line, = ax.plot([], [], color="tab:blue", linewidth=2)
-        agent = patches.Circle(traj[0], agent_radius, color="tab:blue", zorder=4)
-        ax.add_patch(agent)
-        fov_poly = patches.Polygon(
-            np.zeros((3, 2)),
-            closed=True,
-            edgecolor="darkorange",
-            facecolor="gold",
-            linestyle="--",
-            linewidth=2.5,
-            alpha=0.25,
-            zorder=6,
-        )
-        ax.add_patch(fov_poly)
-        heading = ax.quiver(
-            traj[0, 0],
-            traj[0, 1],
-            0.0,
-            0.0,
-            angles="xy",
-            scale_units="xy",
-            scale=1.0,
-            color="tab:orange",
-            width=0.006,
-            zorder=5,
-        )
-        boundary_points = [sample_obstacle_boundary(obs) for obs in obstacles]
-        sensed_edges = []
-        for _ in obstacles:
-            edge_line, = ax.plot([], [], color="tab:orange", linewidth=1.5, zorder=3)
-            sensed_edges.append(edge_line)
-
-        def init():
-            line.set_data([], [])
-            heading_angle = headings[0]
-            fov_left, fov_right = calculate_fov_points(
-                traj[0], heading_angle, fov_angle, cam_range
-            )
-            fov_pts = np.array(
-                [[traj[0, 0], traj[0, 1]], fov_left, fov_right], dtype=float
-            )
-            fov_poly.set_xy(fov_pts)
-            for edge_line in sensed_edges:
-                edge_line.set_data([], [])
-            return line, agent, heading, fov_poly, *sensed_edges
-
-        def update(i):
-            line.set_data(traj[: i + 1, 0], traj[: i + 1, 1])
-            agent.center = (traj[i, 0], traj[i, 1])
-            heading_angle = headings[i]
-            fov_left, fov_right = calculate_fov_points(
-                traj[i], heading_angle, fov_angle, cam_range
-            )
-            fov_pts = np.array(
-                [[traj[i, 0], traj[i, 1]], fov_left, fov_right], dtype=float
-            )
-            fov_poly.set_xy(fov_pts)
-            u = controls[i]
-            u_norm = np.linalg.norm(u)
-            if u_norm < 1e-6:
-                ux, uy = 0.0, 0.0
-            else:
-                heading_len = 0.35
-                ux, uy = u / u_norm * heading_len
-            heading.set_offsets([traj[i, 0], traj[i, 1]])
-            heading.set_UVC([ux], [uy])
-            sensed = detect_sensed_obstacles(
-                traj[i], heading_angle, inflated_obstacles, cam_range, fov_angle
-            )
-            sensed = sensed[:max_sensed]
-            sensed_ids = {id(obs) for obs in sensed}
-            for idx, edge_line in enumerate(sensed_edges):
-                pts = boundary_points[idx]
-                rel = pts - traj[i]
-                dists = np.linalg.norm(rel, axis=1)
-                angles = np.arctan2(rel[:, 1], rel[:, 0])
-                ang_diff = np.abs(_angle_wrap(angles - heading_angle))
-                mask = (dists <= cam_range) & (ang_diff <= fov_angle / 2.0)
-                if id(inflated_obstacles[idx]) in sensed_ids and np.any(mask):
-                    edge_line.set_data(pts[mask, 0], pts[mask, 1])
-                else:
-                    edge_line.set_data([], [])
-            return line, agent, heading, fov_poly, *sensed_edges
-
-        ani = animation.FuncAnimation(
-            fig,
-            update,
-            init_func=init,
-            frames=range(0, len(traj), animation_stride),
-            interval=15,
-            blit=True,
-            repeat=False,
-        )
-        if save_animation:
-            animation_path.parent.mkdir(parents=True, exist_ok=True)
-            ani.save(animation_path, writer=animation.PillowWriter(fps=animation_fps))
-    else:
-        ax.plot(traj[:, 0], traj[:, 1], color="tab:blue", linewidth=2)
-
-    plt.tight_layout()
-    plt.show()
 
 
 if __name__ == "__main__":

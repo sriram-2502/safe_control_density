@@ -1,20 +1,22 @@
 from pathlib import Path
 import argparse
+import sys
 
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib import animation, patches
 
 from density_utils.controllers import density_feedback_control
 from density_utils.density import Obstacle
 from density_utils.sim import forward_euler
-from density_utils.utils import plot_goal, plot_obstacle, plot_start
 from density_utils.utils.timing import TimedBlock
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from _plotting import plot_single_integrator_results
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--save-gif", action="store_true", help="Save animation as GIF.")
+    parser.add_argument("--no-plot", action="store_true", help="Run without opening plots.")
     args = parser.parse_args()
 
     dt = 0.001
@@ -28,7 +30,7 @@ def main():
     q_lqr = 4.0
     r_lqr = 1.0
     saturation = 4.0
-    animate = True
+    animate = not args.no_plot
     save_animation = args.save_gif
     animation_stride = 50
     animation_fps = 15
@@ -160,104 +162,23 @@ def main():
             std_ms = control_times.std() * 1e3
             print(f"avg_iteration_outside_goal={mean_ms:.3f} [ms] std={std_ms:.3f} [ms]")
 
-    t_state = dt * np.arange(len(traj))
-    t_u = dt * np.arange(len(controls))
-    fig_ts, axes = plt.subplots(2, 2, figsize=(8, 6))
-    axes[0, 0].plot(t_state, traj[:, 0], linewidth=1.8, label="x [m]")
-    axes[0, 1].plot(t_state, traj[:, 1], linewidth=1.8, label="y [m]")
-    axes[1, 0].plot(t_u, controls[:, 0], linewidth=1.8, label="u_x [m/s]")
-    axes[1, 1].plot(t_u, controls[:, 1], linewidth=1.8, label="u_y [m/s]")
-    for ax in axes.ravel():
-        ax.set_xlabel("time [s]")
-        ax.grid(True, linestyle="--", alpha=0.4)
-        if ax.has_data():
-            ax.legend(loc="best")
-
-    fig, ax = plt.subplots(figsize=(6, 6))
-    plot_start(ax, start)
-    plot_goal(ax, goal)
-    for obs in obstacles:
-        plot_obstacle(
-            ax,
-            obs.center,
-            obs.r1,
-            obs.r2,
-            p=obs.p,
-            scale=obs.scale,
-            angle=obs.angle,
-            color="0.3",
-            fill=True,
+    if not args.no_plot:
+        plot_single_integrator_results(
+            traj=traj,
+            controls=controls,
+            dt=dt,
+            start=start,
+            goal=goal,
+            obstacles=obstacles,
+            agent_radius=agent_radius,
+            title="Single Integrator - Multiple Obstacles (Density Feedback)",
+            animate=animate,
+            save_animation=save_animation,
+            animation_path=animation_path,
+            animation_stride=animation_stride,
+            animation_fps=animation_fps,
+            animation_interval=15,
         )
-
-    ax.set_aspect("equal", adjustable="box")
-    ax.set_xlabel("x")
-    ax.set_ylabel("y")
-    ax.set_title("Single Integrator - Multiple Obstacles (Density Feedback)")
-    ax.grid(True, linestyle="--", alpha=0.4)
-
-    if animate:
-        line, = ax.plot([], [], color="tab:blue", linewidth=2)
-        agent = patches.Circle(traj[0], agent_radius, color="tab:blue", zorder=4)
-        ax.add_patch(agent)
-        heading = ax.quiver(
-            traj[0, 0],
-            traj[0, 1],
-            0.0,
-            0.0,
-            angles="xy",
-            scale_units="xy",
-            scale=1.0,
-            color="tab:orange",
-            width=0.006,
-            zorder=5,
-        )
-
-        def init():
-            line.set_data([], [])
-            return line, agent, heading
-
-        def update(i):
-            line.set_data(traj[: i + 1, 0], traj[: i + 1, 1])
-            agent.center = (traj[i, 0], traj[i, 1])
-            u = controls[i]
-            u_norm = np.linalg.norm(u)
-            if u_norm < 1e-6:
-                ux, uy = 0.0, 0.0
-            else:
-                heading_len = 0.35
-                ux, uy = u / u_norm * heading_len
-            heading.set_offsets([traj[i, 0], traj[i, 1]])
-            heading.set_UVC([ux], [uy])
-            return line, agent, heading
-
-        ani = animation.FuncAnimation(
-            fig,
-            update,
-            init_func=init,
-            frames=range(0, len(traj), animation_stride),
-            interval=15,
-            blit=True,
-            repeat=False,
-        )
-        if save_animation:
-            animation_path.parent.mkdir(parents=True, exist_ok=True)
-            try:
-                if animation_format == "mp4":
-                    writer = animation.FFMpegWriter(fps=animation_fps)
-                else:
-                    writer = animation.PillowWriter(fps=animation_fps)
-                ani.save(animation_path, writer=writer)
-            except Exception:
-                if animation_format == "mp4":
-                    fallback = animation_path.with_suffix(".gif")
-                    ani.save(fallback, writer=animation.PillowWriter(fps=animation_fps))
-                else:
-                    raise
-    else:
-        ax.plot(traj[:, 0], traj[:, 1], color="tab:blue", linewidth=2)
-
-    plt.tight_layout()
-    plt.show()
 
 
 if __name__ == "__main__":
