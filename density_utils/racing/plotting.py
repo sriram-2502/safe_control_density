@@ -2,12 +2,26 @@ import numpy as np
 from matplotlib import patches
 
 
-def plot_track(ax, track, *, center_line=True, color="tab:blue"):
+def plot_track(
+    ax,
+    track,
+    *,
+    center_line=True,
+    color="tab:blue",
+    center_color="tab:red",
+    center_linestyle="--",
+):
     _, left, center, right = track.sample_boundaries()
     ax.plot(left[:, 0], left[:, 1], color=color, linewidth=2.0)
     ax.plot(right[:, 0], right[:, 1], color=color, linewidth=2.0)
     if center_line:
-        ax.plot(center[:, 0], center[:, 1], "--", color="tab:red", linewidth=1.2)
+        ax.plot(
+            center[:, 0],
+            center[:, 1],
+            linestyle=center_linestyle,
+            color=center_color,
+            linewidth=1.2,
+        )
     ax.set_aspect("equal", adjustable="box")
     ax.set_xlabel("x")
     ax.set_ylabel("y")

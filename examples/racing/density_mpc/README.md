@@ -122,14 +122,34 @@ $$
 
 where \(m\) is the configured obstacle safety margin.
 
-We convert this superellipse into a smooth density term using a bump function:
+We support two smooth obstacle-density mappings.  The default option is a
+sigmoid density of the normalized superellipse value:
 
 $$
-\rho_i(x) =
-\operatorname{bump}\bigl(z_i(x);\, 1+m,\, 1+m+\Delta\bigr),
+\rho_i^{\mathrm{sig}}(x) =
+\frac{1}
+{1+\exp\left(
+-\kappa
+\frac{z_i(x)-(1+m)}{\Delta}
+\right)}.
 $$
 
-where \(\Delta\) is the obstacle transition width.  Thus,
+Here \(\Delta\) is the obstacle transition width and \(\kappa\) controls how
+sharply the density changes near the safety boundary.
+
+The second option is the compact bump formulation:
+
+$$
+\rho_i^{\mathrm{bump}}(x) =
+\operatorname{bump}
+\bigl(
+z_i(x);\,
+1+m,\,
+1+m+\Delta
+\bigr).
+$$
+
+Both choices satisfy the same qualitative behavior:
 
 $$
 \rho_i(x) \approx 0 \quad \text{near the obstacle},
@@ -164,8 +184,21 @@ $$
 $$
 
 In the implementation, this product is used to encourage early, smooth
-avoidance, while the hard superellipse constraint prevents the ego vehicle from
-cutting through obstacle cars.
+avoidance.  Unlike a compact-support bump that becomes exactly flat inside the
+unsafe set, this sigmoid density remains smooth and non-flat, so the optimizer
+still sees a useful direction when it approaches an obstacle.
+
+The density mode is selected in `config.py`:
+
+```python
+OBSTACLE_DENSITY_MODE = "sigmoid"  # "sigmoid" or "bump"
+```
+
+or from the command line:
+
+```bash
+python examples/racing/density_mpc/density_mpc.py --density-mode bump
+```
 
 ## MPC-CDF Constraint
 
@@ -197,42 +230,53 @@ $$
 v_{\min} \leq v_{x,k} \leq v_{\max},
 $$
 
-and density-CDF constraints
+and the MPC-CDF density transport constraint.  The reference MPC-CDF code uses
 
 $$
-\rho(x_{k+1}) + \sigma_k^{(1)}
-\geq
-\rho_{\min},
+(\rho_{k+1}-\rho_k) + dt\,\mathrm{div}(F_d)(x_k)\rho_k
+- dt\,C_k\rho_k \geq 0,
 $$
 
-$$
-\rho(x_{k+1}) + \sigma_k^{(2)}
-\geq
-(1-\gamma)\rho(x_k).
-$$
-
-The slack variables satisfy
+where \(C_k \geq 0\) is a slack variable.  In this racing example, the
+prediction model is the LTI map
 
 $$
-\sigma_k^{(1)} \geq 0,
-\qquad
-\sigma_k^{(2)} \geq 0,
+x_{k+1}=Ax_k+Bu_k,
 $$
 
-and are heavily penalized in the objective.  This mirrors the reference CBF-MPC
-idea of keeping the optimization problem feasible while making safety
-violations expensive.
+so the discrete-map divergence is constant:
 
-The hard superellipse safety condition is also enforced:
+$$
+\mathrm{div}(F_d)=\operatorname{tr}(A).
+$$
+
+The implemented transport constraint is therefore
+
+$$
+(\rho(x_{k+1})-\rho(x_k)) + dt\,\operatorname{tr}(A)\rho(x_k) - dt\,C_k\rho(x_k)
+\geq 0.
+$$
+
+We also keep a density floor
+
+$$
+\rho(x_{k+1}) \geq \rho_{\min}
+$$
+
+to avoid very low-density near-collision behavior.  The slack variables satisfy
+\(C_k \geq 0\) and are heavily penalized in the objective, mirroring the
+reference MPC-CDF implementation.
+
+An optional hard superellipse safety condition can also be enabled:
 
 $$
 z_i(x_{k+1}) \geq 1 + m
 \qquad \text{for each obstacle } i.
 $$
 
-This is important because the bump density is flat near zero inside the unsafe
-region; the explicit superellipse constraint gives the optimizer a clear
-geometric safety boundary.
+This is disabled by default so that safety is encoded directly through the
+density-CDF constraints.  It is useful as a diagnostic guard, but the default
+experiment uses the density formulation alone.
 
 ## Running The Example
 
@@ -266,7 +310,8 @@ MPLCONFIGDIR=/tmp/matplotlib python examples/racing/density_mpc/density_mpc.py \
 ## Result
 
 The density-MPC controller tracks the L-shaped racing track while avoiding two
-moving cars.  The density term causes early response, while the hard
-superellipse constraint prevents collision with either moving obstacle.
+moving cars.  The density term causes early response and keeps the ego vehicle
+outside the obstacle superellipse without requiring the optional hard geometric
+constraint.
 
-![Density MPC racing result](../../../animations/density_mpc_Ltrack.gif)
+![Density MPC racing result](../../../animations/density_mpc_Ltrack_bump.gif)
