@@ -127,7 +127,7 @@ def _unicycle_nominal_from_planar_ref(state, planar_ref, v_max, omega_max, k_hea
     return np.array([v_nom, omega_nom], dtype=float)
 
 
-def main():
+def main(highlight_reactive_fov=False):
     parser = argparse.ArgumentParser()
     parser.add_argument("--save-gif", action="store_true", help="Save animation as GIF.")
     parser.add_argument("--no-plot", action="store_true", help="Run without opening plots.")
@@ -181,6 +181,7 @@ def main():
     slacks = []
     sensed_counts = []
     buffered_counts = []
+    fov_active = []
     sensed_buffer = {}
     solver_failures = 0
     min_clearance = min(_p_norm_distance(state[:2], obs) - obs.r1 for obs in inflated_obstacles)
@@ -246,6 +247,7 @@ def main():
         slacks.append(float(np.max(qp.slack)) if qp.slack.size else 0.0)
         sensed_counts.append(len(sensed))
         buffered_counts.append(len(buffered))
+        fov_active.append(len(sensed) > 0)
         if not qp.success:
             solver_failures += 1
 
@@ -274,9 +276,12 @@ def main():
         controls.append(controls[-1] if controls else np.zeros(2, dtype=float))
     if len(slacks) < len(traj):
         slacks.append(slacks[-1] if slacks else 0.0)
+    if len(fov_active) < len(traj):
+        fov_active.append(fov_active[-1] if fov_active else False)
     traj = np.array(traj)
     controls = np.array(controls)
     slacks = np.array(slacks)
+    fov_active = np.array(fov_active, dtype=bool)
 
     def _format_duration(seconds):
         if seconds < 1.0:
@@ -315,6 +320,7 @@ def main():
             inflated_obstacles=inflated_obstacles,
             fov_angle=fov_angle,
             cam_range=cam_range,
+            fov_active=fov_active if highlight_reactive_fov else None,
             max_sensed=max_sensed,
         )
 

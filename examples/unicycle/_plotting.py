@@ -113,6 +113,7 @@ def plot_unicycle_results(
     inflated_obstacles=None,
     fov_angle=None,
     cam_range=None,
+    fov_active=None,
     max_sensed=5,
     animation_interval=20,
 ):
@@ -120,6 +121,7 @@ def plot_unicycle_results(
     traj = np.asarray(traj, dtype=float)
     controls = np.asarray(controls, dtype=float)
     slacks = None if slacks is None else np.asarray(slacks, dtype=float)
+    fov_active = None if fov_active is None else np.asarray(fov_active, dtype=bool)
     show_fov = inflated_obstacles is not None and fov_angle is not None and cam_range is not None
 
     _plot_time_series(traj, controls, dt, slacks=slacks)
@@ -187,9 +189,25 @@ def plot_unicycle_results(
         boundary_points = []
         sensed_edges = []
 
+    def set_fov_style(i):
+        if not show_fov or fov_active is None:
+            return
+        is_active = bool(fov_active[min(i, len(fov_active) - 1)])
+        if is_active:
+            fov_poly.set_edgecolor("darkred")
+            fov_poly.set_facecolor("red")
+            fov_poly.set_alpha(0.28)
+            fov_poly.set_linewidth(2.8)
+        else:
+            fov_poly.set_edgecolor("darkorange")
+            fov_poly.set_facecolor("gold")
+            fov_poly.set_alpha(0.25)
+            fov_poly.set_linewidth(2.5)
+
     def init():
         line.set_data([], [])
         if show_fov:
+            set_fov_style(0)
             left, right = _calculate_fov_points(traj[0, :2], traj[0, 2], fov_angle, cam_range)
             fov_poly.set_xy(np.array([[traj[0, 0], traj[0, 1]], left, right], dtype=float))
             for edge_line in sensed_edges:
@@ -200,6 +218,7 @@ def plot_unicycle_results(
         line.set_data(traj[: i + 1, 0], traj[: i + 1, 1])
         agent.set_xy(_triangle_points(traj[i, :2], traj[i, 2], agent_radius))
         if show_fov:
+            set_fov_style(i)
             left, right = _calculate_fov_points(traj[i, :2], traj[i, 2], fov_angle, cam_range)
             fov_poly.set_xy(np.array([[traj[i, 0], traj[i, 1]], left, right], dtype=float))
             sensed = _detect_sensed_obstacles(

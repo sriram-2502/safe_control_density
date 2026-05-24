@@ -197,6 +197,5 @@ def main():
             animation_fps=animation_fps,
         )
 
-
 if __name__ == "__main__":
     main()
