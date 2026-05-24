@@ -141,7 +141,7 @@ The second option is the compact bump formulation:
 
 $$
 \rho_i^{\mathrm{bump}}(x) =
-\operatorname{bump}
+\mathrm{bump}
 \bigl(
 z_i(x);\,
 1+m,\,
@@ -168,7 +168,7 @@ Using track margin \(m_{\mathrm{track}}\) and transition width
 
 $$
 \rho_{\mathrm{track}}(x) =
-\operatorname{bump}
+\mathrm{bump}
 \bigl(
 c_{\mathrm{track}}(x);\,
 m_{\mathrm{track}},\,
@@ -247,13 +247,13 @@ $$
 so the discrete-map divergence is constant:
 
 $$
-\mathrm{div}(F_d)=\operatorname{tr}(A).
+\mathrm{div}(F_d)=\mathrm{tr}(A).
 $$
 
 The implemented transport constraint is therefore
 
 $$
-(\rho(x_{k+1})-\rho(x_k)) + dt\,\operatorname{tr}(A)\rho(x_k) - dt\,C_k\rho(x_k)
+(\rho(x_{k+1})-\rho(x_k)) + dt\,\mathrm{tr}(A)\rho(x_k) - dt\,C_k\rho(x_k)
 \geq 0.
 $$
 
