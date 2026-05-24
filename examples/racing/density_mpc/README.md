@@ -390,3 +390,10 @@ MPLCONFIGDIR=/tmp/matplotlib python examples/racing/density_mpc/density_mpc.py \
   --save-animation animations/density_mpc_Ltrack_sigmoid.gif \
   --save-diagnostics animations/density_mpc_state_controls_Ltrack_sigmoid.png
 ```
+
+## TODO
+
+- Add an explicit inflation radius or geometry buffer for the other cars.
+- Add more track layouts beyond the current L-shaped track.
+- Add quantitative comparisons against baseline MPC, MPC-CBF, and different
+  density formulations.
