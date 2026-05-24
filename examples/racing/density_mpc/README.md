@@ -1,11 +1,8 @@
 # Racing Density MPC-CDF Example
 
 This example studies density-constrained model predictive control for a racing
-vehicle on a closed track with moving obstacle cars.  The setup follows the
-structure of the `mpccbf_test.py` example from the car-racing reference code:
-the ego vehicle tracks a desired speed on an L-shaped track while avoiding two
-scripted moving cars.  The main difference is that the CBF safety constraint is
-replaced by a density/CDF-style safety condition.
+vehicle on a closed track with moving obstacle cars. The ego vehicle tracks a desired speed on an L-shaped track while avoiding two
+scripted moving cars using a MPC-CDF safety condition (discrete time control density function constraint in a discrete MPC setting). The track layout is inspired by: https://github.com/HybridRobotics/car-racing
 
 ## Problem Formulation
 
@@ -43,18 +40,16 @@ while avoiding moving obstacle cars and staying inside the track.
 
 ## Prediction Dynamics
 
-To match the reference MPC-CBF racing setup, the MPC prediction model uses the
-same discrete-time LTI dynamics:
+The MPC prediction model uses the
+discrete-time LTI dynamics:
 
 $$
 x_{k+1} = A x_k + B u_k.
 $$
 
 The matrices \(A\) and \(B\) are copied into `config.py` from the reference
-car-racing LTI model.  This keeps the density-MPC comparison focused on the
-safety constraint rather than on differences in the prediction model.
-
-The script still keeps the nonlinear dynamic bicycle model available in the
+car-racing LTI model.
+The script  keeps the nonlinear dynamic bicycle model available in the
 code path, but the default setting is:
 
 ```python
@@ -81,12 +76,9 @@ $$
 s_2(t) = 10.0 + 0.2t, \qquad e_{y,2} = -0.1.
 $$
 
-These match the obstacle cars used in the reference MPC-CBF test.
-
 ## Density Function
 
-The obstacle geometry is based on the same superellipse used by the CBF
-formulation.  For an ego state \(x\) and obstacle \(i\), define
+The obstacle geometry is based on the superellipse.  For an ego state \(x\) and obstacle \(i\), define
 
 $$
 \Delta s_i = s - s_i,
@@ -233,8 +225,7 @@ $$
 and the MPC-CDF density transport constraint.  The reference MPC-CDF code uses
 
 $$
-(\rho_{k+1}-\rho_k) + dt\,\mathrm{div}(F_d)(x_k)\rho_k
-- dt\,C_k\rho_k \geq 0,
+(\rho_{k+1}-\rho_k) + dt\,\mathrm{div}(F_d)(x_k)\rho_k - dt\,C_k\rho_k \geq 0,
 $$
 
 where \(C_k \geq 0\) is a slack variable.  In this racing example, the
@@ -312,6 +303,90 @@ MPLCONFIGDIR=/tmp/matplotlib python examples/racing/density_mpc/density_mpc.py \
 The density-MPC controller tracks the L-shaped racing track while avoiding two
 moving cars.  The density term causes early response and keeps the ego vehicle
 outside the obstacle superellipse without requiring the optional hard geometric
-constraint.
+constraint.  We tested both obstacle-density choices:
 
-![Density MPC racing result](../../../animations/density_mpc_Ltrack_bump.gif)
+| Density mode | Observed behavior |
+| --- | --- |
+| `bump` | Gives the cleanest avoidance behavior in the current setup. The ego vehicle commits earlier to the passing maneuver and avoids both moving cars without entering the obstacle safety region. |
+| `sigmoid` | Produces smoother density gradients, but is more sensitive to tuning. With a soft transition, the ego vehicle can prefer trailing behind the second car because that is cheaper than paying lateral tracking and steering-rate cost. Shifting the sigmoid midpoint into the transition band makes it more conservative and closer to the bump result. |
+
+### Bump Density
+
+The bump density gives the cleanest behavior in this example.  The ego vehicle
+responds early enough to pass both cars while remaining inside the track.
+
+![Density MPC bump animation](../../../animations/density_mpc_Ltrack_bump.gif)
+
+The corresponding state, control, density, and obstacle-distance histories are:
+
+![Density MPC bump state and control plots](../../../animations/density_mpc_state_controls_Ltrack_bump.png)
+
+### Sigmoid Density
+
+The sigmoid density gives a smoother transition field.  In the current tuned
+setup, it remains safe, but the maneuver is more conservative and can trail
+behind the second car longer than the bump formulation.
+
+![Density MPC sigmoid animation](../../../animations/density_mpc_Ltrack_sigmoid.gif)
+
+The corresponding state, control, density, and obstacle-distance histories are:
+
+![Density MPC sigmoid state and control plots](../../../animations/density_mpc_state_controls_Ltrack_sigmoid.png)
+
+### Bump Versus Sigmoid
+
+The full state and control plots look similar because most of the lap is spent
+tracking the same reference trajectory.  The important difference appears in a
+short window near the second moving car, around simulation steps 180--186.
+
+In that window, the bump density stays close to one, so the MPC only needs a
+mild steering correction.  The sigmoid density drops more gradually before
+recovering, so the optimizer reacts later and then uses a much larger steering
+command:
+
+| Step | bump density | sigmoid density | bump \(e_y\) | sigmoid \(e_y\) | bump steering | sigmoid steering |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 180 | 0.997 | 0.978 | 0.031 | 0.084 | -1.5 deg | -0.2 deg |
+| 181 | 0.997 | 0.847 | 0.031 | 0.103 | -1.5 deg | -11.5 deg |
+| 182 | 0.997 | 0.648 | 0.031 | 0.119 | -1.5 deg | -22.9 deg |
+| 183 | 0.997 | 0.532 | 0.031 | 0.132 | -1.5 deg | -28.6 deg |
+| 184 | 0.997 | 0.577 | 0.031 | 0.142 | -1.5 deg | -28.6 deg |
+| 185 | 0.997 | 0.744 | 0.031 | 0.150 | -1.5 deg | -28.6 deg |
+| 186 | 0.997 | 0.890 | 0.031 | 0.156 | -1.5 deg | -28.6 deg |
+
+The largest observed differences over the run were:
+
+| Quantity | Maximum difference |
+| --- | ---: |
+| global position | 6.00 m |
+| lateral error \(e_y\) | 0.196 m |
+| speed \(v_x\) | 0.636 m/s |
+| steering \(\delta\) | 32.35 deg |
+| acceleration \(a\) | 0.813 m/s\(^2\) |
+| density \(\rho\) | 0.465 |
+
+Thus, the main visible distinction is not a large change throughout the whole
+trajectory.  It is the local interaction near the second car: the bump
+formulation creates a sharper safe/unsafe transition and encourages an earlier,
+cleaner avoidance maneuver, while the sigmoid formulation is smoother but can
+delay the response unless it is tuned more conservatively.
+
+### Reproducing The Results
+
+To regenerate the bump result:
+
+```bash
+MPLCONFIGDIR=/tmp/matplotlib python examples/racing/density_mpc/density_mpc.py \
+  --density-mode bump \
+  --save-animation animations/density_mpc_Ltrack_bump.gif \
+  --save-diagnostics animations/density_mpc_state_controls_Ltrack_bump.png
+```
+
+To run the sigmoid version:
+
+```bash
+MPLCONFIGDIR=/tmp/matplotlib python examples/racing/density_mpc/density_mpc.py \
+  --density-mode sigmoid \
+  --save-animation animations/density_mpc_Ltrack_sigmoid.gif \
+  --save-diagnostics animations/density_mpc_state_controls_Ltrack_sigmoid.png
+```
