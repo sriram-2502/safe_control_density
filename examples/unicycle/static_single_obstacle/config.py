@@ -35,8 +35,8 @@ CONFIG = {
         "k_heading": 4.0,
     },
     "animation": {
-        "path": "animations/unicycle_static_qp.gif",
-        "stride": 10,
-        "fps": 20,
+        "path": "animations/unicycle_static_filter.gif",
+        "stride": 5,
+        "fps": 15,
     },
 }

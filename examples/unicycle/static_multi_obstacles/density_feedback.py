@@ -4,12 +4,15 @@ import sys
 
 import numpy as np
 
+EXAMPLE_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[3]
+sys.path[:0] = [str(REPO_ROOT), str(EXAMPLE_ROOT)]
+
 from density_utils.controllers import density_feedback_control
 from density_utils.density import Obstacle
 from density_utils.dynamics import unicycle_step
 from density_utils.utils.timing import TimedBlock
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from _plotting import plot_unicycle_results
 
 
@@ -40,7 +43,7 @@ def main():
     animate = not args.no_plot
     save_animation = args.save_gif
     animation_stride = 50
-    animation_fps = 15
+    animation_fps = 30
     animation_format = "gif"
     animation_path = Path("animations") / f"unicycle_multi.{animation_format}"
 

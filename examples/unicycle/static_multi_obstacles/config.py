@@ -34,7 +34,7 @@ CONFIG = {
         "q_lqr": 4.0,
         "r_lqr": 1.0,
         "slack_weight": 1e4,
-        "max_qp_obstacles": 4,
+        "max_filter_obstacles": 4,
     },
     "control": {
         "v_max": 2.0,
@@ -42,8 +42,8 @@ CONFIG = {
         "k_heading": 4.0,
     },
     "animation": {
-        "path": "animations/unicycle_static_multi_qp.gif",
-        "stride": 20,
-        "fps": 20,
+        "path": "animations/unicycle_static_multi_filter.gif",
+        "stride": 5,
+        "fps": 15,
     },
 }

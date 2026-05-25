@@ -61,7 +61,7 @@ def single_integrator_nominal_control(
     goal_weight=0.5,
     lookahead_distance=1.0,
 ):
-    """Reference control choices for single-integrator Density-QP examples."""
+    """Reference control choices for single-integrator Density filter examples."""
     x = np.asarray(x, dtype=float)
     goal = np.asarray(goal, dtype=float)
     obstacles = list(obstacles)

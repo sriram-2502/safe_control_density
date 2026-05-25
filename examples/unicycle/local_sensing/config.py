@@ -47,8 +47,8 @@ CONFIG = {
         "linger_steps": 200,
     },
     "animation": {
-        "path": "animations/unicycle_local_sensing_qp.gif",
-        "stride": 20,
-        "fps": 20,
+        "path": "animations/unicycle_local_sensing_filter.gif",
+        "stride": 5,
+        "fps": 15,
     },
 }
