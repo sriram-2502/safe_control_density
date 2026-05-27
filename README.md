@@ -34,31 +34,80 @@ python examples/unicycle/static_single_obstacle/density_mpc.py --solver casadi_i
 
 ### Single Integrator
 
-A planar point robot with directly commanded velocity is tested with static
-obstacles, multiple obstacles, and local sensing. Density feedback gives a
-closed-form correction, while the density filter solves a one-step constrained
-controller.
+The single-integrator examples use a planar point robot with directly commanded
+velocity. Density MPC is not used for this simple model; the main comparison is
+between direct density feedback, a one-step density filter, and a CLF-CBF
+filter.
 
-![Single-integrator safety filters](examples/single_integrator/static_single_obstacle/comparison_results/single_integrator_static_safety_filters.gif)
+#### Static Single Obstacle
+
+<table>
+<tr>
+<td align="center"><b>Density feedback</b><br><img src="examples/single_integrator/animations/single_integrator_static.gif" width="300" alt="Single-integrator density feedback"></td>
+<td align="center"><b>Density filter</b><br><img src="examples/single_integrator/animations/single_integrator_static_filter.gif" width="300" alt="Single-integrator density filter"></td>
+<td align="center"><b>CLF-CBF filter</b><br><img src="examples/single_integrator/animations/single_integrator_static_cbf_filter.gif" width="300" alt="Single-integrator CLF-CBF filter"></td>
+</tr>
+</table>
+
+#### Multi-Obstacle And Local Sensing
+
+The local-sensing case has density feedback and density-filter results. To keep
+the overview balanced, this block also includes the static multi-obstacle
+density-feedback rollout.
+
+<table>
+<tr>
+<td align="center"><b>Static multi-obstacle density feedback</b><br><img src="examples/single_integrator/animations/single_integrator_multi.gif" width="300" alt="Single-integrator multi-obstacle density feedback"></td>
+<td align="center"><b>Local sensing density feedback</b><br><img src="examples/single_integrator/animations/single_integrator_multi_local.gif" width="300" alt="Single-integrator local sensing density feedback"></td>
+<td align="center"><b>Local sensing density filter</b><br><img src="examples/single_integrator/animations/single_integrator_multi_local_filter.gif" width="300" alt="Single-integrator local sensing density filter"></td>
+</tr>
+</table>
 
 Full results: [single-integrator examples](examples/single_integrator/README.md)
 
 ### Unicycle
 
-A planar unicycle with forward speed and yaw-rate inputs is used to compare
-density feedback, density filter, density MPC, CLF-CBF filtering, and CBF MPC.
+The unicycle examples use forward speed and yaw-rate inputs. The static
+single-obstacle case compares density feedback, density filter, and density MPC
+with the same obstacle geometry.
 
-![Unicycle density controllers](examples/unicycle/static_single_obstacle/comparison_results/unicycle_static_density_controllers.gif)
+#### Static Single Obstacle
+
+<table>
+<tr>
+<td align="center"><b>Density feedback</b><br><img src="examples/unicycle/animations/unicycle_static.gif" width="300" alt="Unicycle density feedback"></td>
+<td align="center"><b>Density filter</b><br><img src="examples/unicycle/animations/unicycle_static_filter.gif" width="300" alt="Unicycle density filter"></td>
+<td align="center"><b>Density MPC</b><br><img src="examples/unicycle/animations/unicycle_static_density_mpc.gif" width="300" alt="Unicycle density MPC"></td>
+</tr>
+</table>
+
+#### Local Sensing
+
+The local-sensing case uses the same three density controllers while limiting
+which obstacles are active in the controller. The Density MPC result below uses
+the reactive-FOV visualization.
+
+<table>
+<tr>
+<td align="center"><b>Local sensing density feedback</b><br><img src="examples/unicycle/animations/unicycle_multi_local.gif" width="300" alt="Unicycle local sensing density feedback"></td>
+<td align="center"><b>Local sensing density filter</b><br><img src="examples/unicycle/animations/unicycle_local_sensing_filter.gif" width="300" alt="Unicycle local sensing density filter"></td>
+<td align="center"><b>Local sensing density MPC with reactive FOV</b><br><img src="examples/unicycle/animations/unicycle_local_sensing_mpc_reactive_fov.gif" width="300" alt="Unicycle local sensing density MPC reactive FOV"></td>
+</tr>
+</table>
 
 Full results: [unicycle examples](examples/unicycle/README.md)
 
 ### Racing
 
-A track-coordinate racing model with steering and acceleration inputs uses
-density MPC-CDF to track an L-shaped circuit while avoiding moving obstacle
-cars.
+The racing example uses a track-coordinate vehicle model with steering and
+acceleration inputs. Density MPC-CDF tracks an L-shaped circuit while avoiding
+moving obstacle cars.
 
-![Racing density MPC](examples/racing/animations/density_mpc_Ltrack_bump.gif)
+<table>
+<tr>
+<td align="center"><b>Density MPC-CDF</b><br><img src="examples/racing/animations/density_mpc_Ltrack_bump.gif" width="300" alt="Racing density MPC"></td>
+</tr>
+</table>
 
 Full results: [racing examples](examples/racing/README.md)
 

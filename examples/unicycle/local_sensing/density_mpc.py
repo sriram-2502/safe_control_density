@@ -50,8 +50,10 @@ def main(highlight_reactive_fov=False):
         default=None,
         help="Override MPC prediction step. Defaults to --dt when set, otherwise config density_dt.",
     )
+    parser.add_argument("--reactive-fov", action="store_true", help="Highlight active camera field-of-view frames.")
     parser.add_argument("--verbose", action="store_true", help="Print solver failure diagnostics.")
     args = parser.parse_args()
+    highlight_reactive_fov = highlight_reactive_fov or args.reactive_fov
 
     cfg = CONFIG
     sim_cfg = cfg["simulation"]
@@ -80,7 +82,12 @@ def main(highlight_reactive_fov=False):
     linger_steps = int(sensing_cfg["linger_steps"])
     horizon = int(args.horizon)
     animate = not args.no_plot
-    animation_path = EXAMPLE_ROOT / "animations/unicycle_local_sensing_mpc.gif"
+    animation_name = (
+        "unicycle_local_sensing_mpc_reactive_fov.gif"
+        if highlight_reactive_fov
+        else "unicycle_local_sensing_mpc.gif"
+    )
+    animation_path = EXAMPLE_ROOT / "animations" / animation_name
 
     agent_radius = float(scenario_cfg["agent_radius"])
     start = _as_array(scenario_cfg["start"])
