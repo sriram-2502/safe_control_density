@@ -9,6 +9,8 @@ EXAMPLE_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = Path(__file__).resolve().parents[3]
 sys.path[:0] = [str(REPO_ROOT), str(EXAMPLE_ROOT)]
 
+from density_utils.controllers import SOLVER_CHOICES
+from density_utils.controllers.solver_utils import require_solver
 from density_utils.density import Obstacle
 from density_utils.sim import forward_euler
 from density_utils.utils.timing import TimedBlock
@@ -57,7 +59,9 @@ def _solve_clf_cbf_filter(
     u_max,
     cbf_slack_weight,
     clf_slack_weight,
+    solver="auto",
 ):
+    require_solver(solver, ("scipy_slsqp",), controller="_solve_clf_cbf_filter")
     x = np.asarray(x, dtype=float)
     goal = np.asarray(goal, dtype=float)
     rel_obs = x - obs.center
@@ -137,6 +141,8 @@ def main():
     parser.add_argument("--save-gif", action="store_true", help="Save animation as GIF.")
     parser.add_argument("--no-plot", action="store_true", help="Run the simulation without opening plots.")
     parser.add_argument("--steps", type=int, default=4000, help="Maximum simulation steps.")
+    parser.add_argument("--solver", choices=SOLVER_CHOICES, default="auto", help="Optimizer backend.")
+    parser.add_argument("--verbose", action="store_true", help="Print solver failure diagnostics.")
     parser.add_argument("--gamma", type=float, default=0.5, help="Discrete-time CBF rate in (0, 1].")
     parser.add_argument("--clf-rate", type=float, default=0.20, help="Discrete-time CLF decrease rate in (0, 1].")
     args = parser.parse_args()
@@ -195,6 +201,7 @@ def main():
                 u_max=u_max,
                 cbf_slack_weight=cbf_slack_weight,
                 clf_slack_weight=clf_slack_weight,
+                solver=args.solver,
             )
             u = filter_result["u"]
         control_time += timer.last
@@ -240,7 +247,7 @@ def main():
 
     steps_taken = len(traj) - 1
     avg_control = control_time / max(steps_taken, 1)
-    print(
+    summary = (
         "steps="
         f"{steps_taken} "
         f"gamma={args.gamma:.3f} "
@@ -248,9 +255,11 @@ def main():
         f"sim_time={_format_duration(control_time)} "
         f"avg_iteration={_format_duration(avg_control)} "
         f"min_clearance={min_clearance:.4f} "
-        f"max_cbf_slack={np.max(slacks):.2e} "
-        f"solver_failures={solver_failures}"
+        f"max_cbf_slack={np.max(slacks):.2e}"
     )
+    if args.verbose:
+        summary += f" solver_failures={solver_failures}"
+    print(summary)
 
     if not args.no_plot:
         plot_single_integrator_results(

@@ -14,12 +14,12 @@ OBSTACLES = [
 
 CONFIG = {
     "simulation": {
-        "dt": 0.01,
-        "density_dt": 0.05,
+        "dt": 0.05,
+        "density_dt": 0.1,
         "steps": 12000,
-        "stop_tol": 0.01,
+        "stop_tol": 0.1,
         "stop_steps": 500,
-        "print_interval": 500,
+        "print_interval": 100,
     },
     "scenario": {
         "agent_radius": 0.1,

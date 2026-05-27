@@ -13,7 +13,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-ANIMATION_DIR = REPO_ROOT / "animations"
+ANIMATION_DIR = Path(__file__).resolve().parents[1] / "animations"
 DEFAULT_ANIMATION_PATH = ANIMATION_DIR / "density_mpc.gif"
 DEFAULT_DIAGNOSTIC_PATH = ANIMATION_DIR / "density_mpc_state_controls.png"
 
@@ -57,6 +57,8 @@ from config import (
     TRACK_WIDTH,
     USE_LTI_MODEL,
 )
+from density_utils.controllers import SOLVER_CHOICES
+from density_utils.controllers.solver_utils import require_solver
 
 
 def global_state_from_curvilinear(track, xcurv):
@@ -242,8 +244,15 @@ def density_constraints(u_flat, track, xcurv0, obstacle_predictions, density_mod
 
 
 def solve_mpc(
-    track, xcurv, obstacle_predictions, prev_control, warm_start=None, density_mode=None
+    track,
+    xcurv,
+    obstacle_predictions,
+    prev_control,
+    warm_start=None,
+    density_mode=None,
+    solver="auto",
 ):
+    require_solver(solver, ("scipy_slsqp",), controller="racing density_mpc")
     if warm_start is None:
         u0_controls = np.tile(
             pid_tracking_control(
@@ -308,7 +317,7 @@ def obstacle_distances(xglob, obstacle_predictions):
     )
 
 
-def simulate(num_steps=NUM_STEPS, density_mode=None, print_progress=True):
+def simulate(num_steps=NUM_STEPS, density_mode=None, solver="auto", print_progress=True):
     track = ClosedTrack(np.loadtxt(TRACK_FILE, delimiter=","), track_width=TRACK_WIDTH)
     xcurv = INITIAL_CURVILINEAR_STATE.copy()
     xglob = global_state_from_curvilinear(track, xcurv)
@@ -335,6 +344,7 @@ def simulate(num_steps=NUM_STEPS, density_mode=None, print_progress=True):
             prev_control,
             warm_start=warm_start,
             density_mode=density_mode,
+            solver=solver,
         )
 
         xcurv, xglob = step_state(track, xcurv, xglob, control)
@@ -635,6 +645,7 @@ def main():
     parser.add_argument("--no-save-diagnostics", action="store_true")
     parser.add_argument("--no-diagnostics", action="store_true")
     parser.add_argument("--show-diagnostics", action="store_true")
+    parser.add_argument("--solver", choices=SOLVER_CHOICES, default="auto", help="Optimizer backend.")
     parser.add_argument("--quiet", action="store_true")
     parser.add_argument(
         "--density-mode",
@@ -645,13 +656,14 @@ def main():
     parser.add_argument(
         "--save-default-animation",
         action="store_true",
-        help="Deprecated: default behavior already saves to animations/density_mpc.gif.",
+        help="Deprecated: default behavior already saves to this example's animations/density_mpc.gif.",
     )
     args = parser.parse_args()
 
     result = simulate(
         num_steps=args.steps,
         density_mode=args.density_mode,
+        solver=args.solver,
         print_progress=not args.quiet,
     )
     save_path = args.save_animation or DEFAULT_ANIMATION_PATH

@@ -4,9 +4,20 @@ Version: 0.1.0
 Summary: Time-varying density feedback control examples
 Requires-Python: >=3.9
 Description-Content-Type: text/markdown
+License-File: LICENSE
 Requires-Dist: numpy>=1.26.4
 Requires-Dist: matplotlib>=3.7
 Requires-Dist: scipy>=1.11
+Provides-Extra: jax
+Requires-Dist: jax>=0.4; extra == "jax"
+Requires-Dist: jaxlib>=0.4; extra == "jax"
+Provides-Extra: casadi
+Requires-Dist: casadi>=3.6; extra == "casadi"
+Provides-Extra: solvers
+Requires-Dist: jax>=0.4; extra == "solvers"
+Requires-Dist: jaxlib>=0.4; extra == "solvers"
+Requires-Dist: casadi>=3.6; extra == "solvers"
+Dynamic: license-file
 
 # Safe Control Density (Python)
 
@@ -23,8 +34,32 @@ cd safe_control_density
 python -m venv .venv
 .venv\Scripts\activate
 pip install -e .
-python examples/single_integrator/single_integrator_static_obstacle.py
+python examples/single_integrator/static_single_obstacle/density_feedback.py
 ```
+
+Optional nonlinear MPC backends can be installed with:
+
+```bash
+pip install -e ".[solvers]"
+```
+
+Solver flags are standardized across the optimizer-based examples:
+
+```bash
+python examples/unicycle/static_single_obstacle/density_mpc.py --solver scipy_slsqp
+python examples/unicycle/static_single_obstacle/density_mpc.py --solver jax_slsqp
+python examples/unicycle/static_single_obstacle/density_mpc.py --solver casadi_ipopt
+```
+
+`auto` maps to the reproducible SciPy/SLSQP default. Density MPC supports the
+JAX and CasADi backends when the optional dependencies are installed. The
+generic one-step filter APIs expose the same flag for a consistent command-line
+interface, and currently validate to the SciPy backend because they accept
+plain Python barrier/density callables.
+
+Timing note: examples include a `log_timing` toggle inside each script. When enabled, logs per-iteration control compute time (mean/std). The summary line prints `sim_time` (total runtime) and `avg_iteration` (average per-iteration time).
+
+Stop note: examples include a `stop_when_stable` toggle (default True) along with `stop_tol` and `stop_steps` to end the simulation once the agent stays within the goal tolerance for a sustained window.
 
 ## Structure
 

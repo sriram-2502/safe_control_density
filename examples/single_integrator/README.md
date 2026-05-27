@@ -8,9 +8,6 @@ main static single-obstacle examples compare:
 - `density_filter.py`: a discrete density safety filter around a nominal command.
 - `cbf_filter.py`: a CLF-CBF safety filter.
 
-The `density_mpc.py` files in the multi-obstacle and local-sensing folders are
-older placeholders/experiments and are not part of the filter comparison below.
-
 ## Setup
 
 From the repository root:
@@ -336,6 +333,18 @@ python examples/single_integrator/static_multi_obstacles/density_filter.py --sav
 python examples/single_integrator/local_sensing/density_feedback.py --save-gif
 python examples/single_integrator/local_sensing/density_filter.py --save-gif
 ```
+
+Static multi-obstacle results:
+
+![Static multi obstacle density feedback](animations/single_integrator_multi.gif)
+
+![Static multi obstacle density filter](animations/single_integrator_multi_filter.gif)
+
+Local sensing results:
+
+![Local sensing density feedback](animations/single_integrator_multi_local.gif)
+
+![Local sensing density filter](animations/single_integrator_multi_local_filter.gif)
 
 ## Common Options
 

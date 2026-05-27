@@ -12,6 +12,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 sys.path[:0] = [str(REPO_ROOT), str(EXAMPLE_ROOT)]
 
 from density_utils.controllers import (
+    SOLVER_CHOICES,
     density_feedback_control,
     single_integrator_nominal_control,
     solve_discrete_density_filter,
@@ -131,7 +132,7 @@ def _simulate_density_feedback(*, start, goal, inflated_obstacle, dt, steps, alp
     }
 
 
-def _simulate_density_filter(*, start, goal, inflated_obstacle, dt, steps, alpha, stop_tol, stop_steps):
+def _simulate_density_filter(*, start, goal, inflated_obstacle, dt, steps, alpha, stop_tol, stop_steps, solver):
     print("running density filter agent")
     x = start.copy()
     traj = [x.copy()]
@@ -175,6 +176,7 @@ def _simulate_density_filter(*, start, goal, inflated_obstacle, dt, steps, alpha
             u_max=u_max,
             divergence=0.0,
             slack_weight=1e4,
+            solver=solver,
             return_info=True,
         )
         solve_times.append(time.perf_counter() - solve_start)
@@ -221,7 +223,9 @@ def _simulate_density_filter(*, start, goal, inflated_obstacle, dt, steps, alpha
     }
 
 
-def _simulate_clf_cbf_filter(*, start, goal, inflated_obstacle, dt, steps, alpha, stop_tol, stop_steps, gamma, clf_rate):
+def _simulate_clf_cbf_filter(
+    *, start, goal, inflated_obstacle, dt, steps, alpha, stop_tol, stop_steps, gamma, clf_rate, solver
+):
     print("running CLF-CBF filter agent")
     x = start.copy()
     traj = [x.copy()]
@@ -250,6 +254,7 @@ def _simulate_clf_cbf_filter(*, start, goal, inflated_obstacle, dt, steps, alpha
             u_max=u_max,
             cbf_slack_weight=1e6,
             clf_slack_weight=1e4,
+            solver=solver,
         )
         solve_times.append(time.perf_counter() - solve_start)
         if not filter_result["success"]:
@@ -516,20 +521,22 @@ def _save_dashboard_animation(results, *, start, goal, obstacle, agent_radius, d
     return fig, ani
 
 
-def _print_summary(result):
+def _print_summary(result, *, verbose=False):
     solve_ms = result["solve_times"] * 1e3
     avg_solve_ms = float(np.mean(solve_ms)) if solve_ms.size else 0.0
     max_solve_ms = float(np.max(solve_ms)) if solve_ms.size else 0.0
-    print(
+    summary = (
         f"{result['name']} "
         f"steps={len(result['traj']) - 1} "
         f"min_clearance={np.min(result['clearance']):.4f} "
         f"final_density={result['density'][-1]:.4e} "
         f"max_slack={np.max(result['slack']):.2e} "
-        f"solver_failures={result['solver_failures']} "
         f"avg_solve_ms={avg_solve_ms:.3f} "
         f"max_solve_ms={max_solve_ms:.3f}"
     )
+    if verbose:
+        summary += f" solver_failures={result['solver_failures']}"
+    print(summary)
 
 
 def main():
@@ -539,8 +546,10 @@ def main():
     parser.add_argument("--steps", type=int, default=4000, help="Maximum simulation steps.")
     parser.add_argument("--gamma", type=float, default=0.85, help="CLF-CBF filter CBF rate.")
     parser.add_argument("--clf-rate", type=float, default=0.20, help="CLF-CBF filter CLF rate.")
+    parser.add_argument("--solver", choices=SOLVER_CHOICES, default="auto", help="Optimizer backend.")
     parser.add_argument("--stride", type=int, default=8, help="Dashboard GIF frame stride.")
     parser.add_argument("--fps", type=int, default=18, help="Dashboard GIF playback frame rate.")
+    parser.add_argument("--verbose", action="store_true", help="Print solver failure diagnostics.")
     args = parser.parse_args()
 
     dt = 0.02
@@ -580,6 +589,7 @@ def main():
             alpha=alpha,
             stop_tol=stop_tol,
             stop_steps=stop_steps,
+            solver=args.solver,
         ),
         _simulate_clf_cbf_filter(
             start=start,
@@ -592,6 +602,7 @@ def main():
             stop_steps=stop_steps,
             gamma=args.gamma,
             clf_rate=args.clf_rate,
+            solver=args.solver,
         ),
     ]
 
@@ -621,7 +632,7 @@ def main():
         animations_to_show.append(ani)
 
     for result in results:
-        _print_summary(result)
+        _print_summary(result, verbose=args.verbose)
     print(f"saved {xy_path}")
     print(f"saved {ts_path}")
     if not args.no_gif:

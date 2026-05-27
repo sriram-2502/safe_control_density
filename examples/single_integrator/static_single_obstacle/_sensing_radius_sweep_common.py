@@ -11,6 +11,7 @@ EXAMPLE_ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(REPO_ROOT), str(EXAMPLE_ROOT)]
 
 from density_utils.controllers import (
+    SOLVER_CHOICES,
     density_feedback_control,
     single_integrator_nominal_control,
     solve_discrete_density_filter,
@@ -190,6 +191,7 @@ def _simulate_density_filter(
     agent_radius,
     steps,
     u_nom_mode,
+    solver,
 ):
     obstacle, inflated_obstacle = _make_obstacles(sensing_radius, agent_radius)
     dt = 0.1
@@ -245,6 +247,7 @@ def _simulate_density_filter(
             u_max=u_max,
             divergence=0.0,
             slack_weight=slack_weight,
+            solver=solver,
             return_info=True,
         )
         solve_times.append(time.perf_counter() - solve_start)
@@ -296,18 +299,20 @@ def _simulate_density_filter(
     }
 
 
-def _summarize(result, goal):
+def _summarize(result, goal, *, verbose=False):
     traj = result["traj"]
     solve_times = result["solve_times"]
-    print(
+    summary = (
         f"{result['controller']} r2={result['sensing_radius']:.3f} "
         f"steps={len(traj) - 1} final_dist={np.linalg.norm(traj[-1] - goal):.4f} "
         f"min_clearance={np.min(result['clearance']):.4f} "
         f"max_rho={np.max(result['density']):.3e} "
         f"max_slack={np.max(result['slack']):.2e} "
-        f"avg_eval_ms={np.mean(solve_times) * 1e3:.3f} "
-        f"solver_failures={result['solver_failures']}"
+        f"avg_eval_ms={np.mean(solve_times) * 1e3:.3f}"
     )
+    if verbose:
+        summary += f" solver_failures={result['solver_failures']}"
+    print(summary)
 
 
 def _plot_xy(results, *, start, goal, agent_radius, path, colors, title):
@@ -543,7 +548,24 @@ def _save_dashboard_animation(results, *, start, goal, agent_radius, path, strid
     return fig, ani
 
 
-def _run_controller(controller, *, radii, start, goal, agent_radius, steps_feedback, steps_filter, u_nom_mode, output_dir, no_gif, stride, fps, no_show):
+def _run_controller(
+    controller,
+    *,
+    radii,
+    start,
+    goal,
+    agent_radius,
+    steps_feedback,
+    steps_filter,
+    u_nom_mode,
+    output_dir,
+    no_gif,
+    stride,
+    fps,
+    no_show,
+    solver="auto",
+    verbose=False,
+):
     colors = plt.cm.viridis(np.linspace(0.08, 0.9, len(radii)))
     if controller == "feedback":
         results = [
@@ -567,6 +589,7 @@ def _run_controller(controller, *, radii, start, goal, agent_radius, steps_feedb
                 agent_radius=agent_radius,
                 steps=steps_filter,
                 u_nom_mode=u_nom_mode,
+                solver=solver,
             )
             for radius in radii
         ]
@@ -574,7 +597,7 @@ def _run_controller(controller, *, radii, start, goal, agent_radius, steps_feedb
         title = "Density filter sensing-radius sweep"
 
     for result in results:
-        _summarize(result, goal)
+        _summarize(result, goal, verbose=verbose)
 
     xy_path = output_dir / f"single_integrator_{label}_sensing_radius_sweep_xy.png"
     ts_path = output_dir / f"single_integrator_{label}_sensing_radius_sweep_timeseries.png"

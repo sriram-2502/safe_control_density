@@ -35,8 +35,8 @@ def main():
     saturation = 4.0
     animate = not args.no_plot
     save_animation = args.save_gif
-    animation_stride = 50
-    animation_fps = 15
+    animation_stride = 100
+    animation_fps = 20
     animation_format = "gif"
     animation_path = Path("animations") / f"single_integrator_multi.{animation_format}"
 

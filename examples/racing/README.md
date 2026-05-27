@@ -280,7 +280,7 @@ MPLCONFIGDIR=/tmp/matplotlib python examples/racing/density_mpc/density_mpc.py
 By default, the script shows the animation and saves a GIF to:
 
 ```text
-animations/density_mpc.gif
+examples/racing/animations/density_mpc.gif
 ```
 
 For a headless run:
@@ -315,11 +315,11 @@ constraint.  We tested both obstacle-density choices:
 The bump density gives the cleanest behavior in this example.  The ego vehicle
 responds early enough to pass both cars while remaining inside the track.
 
-![Density MPC bump animation](../../../animations/density_mpc_Ltrack_bump.gif)
+![Density MPC bump animation](animations/density_mpc_Ltrack_bump.gif)
 
 The corresponding state, control, density, and obstacle-distance histories are:
 
-![Density MPC bump state and control plots](../../../animations/density_mpc_state_controls_Ltrack_bump.png)
+![Density MPC bump state and control plots](animations/density_mpc_state_controls_Ltrack_bump.png)
 
 ### Sigmoid Density
 
@@ -327,11 +327,11 @@ The sigmoid density gives a smoother transition field.  In the current tuned
 setup, it remains safe, but the maneuver is more conservative and can trail
 behind the second car longer than the bump formulation.
 
-![Density MPC sigmoid animation](../../../animations/density_mpc_Ltrack_sigmoid.gif)
+![Density MPC sigmoid animation](animations/density_mpc_Ltrack_sigmoid.gif)
 
 The corresponding state, control, density, and obstacle-distance histories are:
 
-![Density MPC sigmoid state and control plots](../../../animations/density_mpc_state_controls_Ltrack_sigmoid.png)
+![Density MPC sigmoid state and control plots](animations/density_mpc_state_controls_Ltrack_sigmoid.png)
 
 ### Bump Versus Sigmoid
 
@@ -378,8 +378,8 @@ To regenerate the bump result:
 ```bash
 MPLCONFIGDIR=/tmp/matplotlib python examples/racing/density_mpc/density_mpc.py \
   --density-mode bump \
-  --save-animation animations/density_mpc_Ltrack_bump.gif \
-  --save-diagnostics animations/density_mpc_state_controls_Ltrack_bump.png
+  --save-animation examples/racing/animations/density_mpc_Ltrack_bump.gif \
+  --save-diagnostics examples/racing/animations/density_mpc_state_controls_Ltrack_bump.png
 ```
 
 To run the sigmoid version:
@@ -387,8 +387,8 @@ To run the sigmoid version:
 ```bash
 MPLCONFIGDIR=/tmp/matplotlib python examples/racing/density_mpc/density_mpc.py \
   --density-mode sigmoid \
-  --save-animation animations/density_mpc_Ltrack_sigmoid.gif \
-  --save-diagnostics animations/density_mpc_state_controls_Ltrack_sigmoid.png
+  --save-animation examples/racing/animations/density_mpc_Ltrack_sigmoid.gif \
+  --save-diagnostics examples/racing/animations/density_mpc_state_controls_Ltrack_sigmoid.png
 ```
 
 ## TODO

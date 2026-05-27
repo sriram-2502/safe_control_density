@@ -10,6 +10,20 @@ dependencies = [
     "scipy>=1.11",
 ]
 
+[project.optional-dependencies]
+jax = [
+    "jax>=0.4",
+    "jaxlib>=0.4",
+]
+casadi = [
+    "casadi>=3.6",
+]
+solvers = [
+    "jax>=0.4",
+    "jaxlib>=0.4",
+    "casadi>=3.6",
+]
+
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"

@@ -63,7 +63,7 @@ def main():
     animation_stride = 50
     animation_fps = 30
     animation_format = "gif"
-    animation_path = Path("animations") / f"unicycle_multi_local.{animation_format}"
+    animation_path = EXAMPLE_ROOT / "animations" / f"unicycle_multi_local.{animation_format}"
 
     # Local sensing settings (safe_control-like)
     cam_range = 1.0

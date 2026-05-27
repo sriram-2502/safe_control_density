@@ -45,7 +45,7 @@ def main():
     animation_stride = 50
     animation_fps = 30
     animation_format = "gif"
-    animation_path = Path("animations") / f"unicycle_multi.{animation_format}"
+    animation_path = EXAMPLE_ROOT / "animations" / f"unicycle_multi.{animation_format}"
 
     agent_radius = 0.1
     start = np.array([-2.1, -2.1])

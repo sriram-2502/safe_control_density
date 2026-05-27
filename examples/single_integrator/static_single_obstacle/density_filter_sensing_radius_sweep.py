@@ -4,7 +4,7 @@ import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 
-from _sensing_radius_sweep_common import _parse_radii, _run_controller
+from _sensing_radius_sweep_common import SOLVER_CHOICES, _parse_radii, _run_controller
 
 
 def main():
@@ -23,8 +23,10 @@ def main():
     )
     parser.add_argument("--stride", type=int, default=12, help="Animation frame stride.")
     parser.add_argument("--fps", type=int, default=18, help="GIF playback frame rate.")
+    parser.add_argument("--solver", choices=SOLVER_CHOICES, default="auto", help="Optimizer backend.")
     parser.add_argument("--no-gif", action="store_true", help="Skip saving the dashboard GIF.")
     parser.add_argument("--no-show", action="store_true", help="Save outputs without opening matplotlib windows.")
+    parser.add_argument("--verbose", action="store_true", help="Print solver failure diagnostics.")
     args = parser.parse_args()
 
     animations_to_show = _run_controller(
@@ -41,6 +43,8 @@ def main():
         stride=args.stride,
         fps=args.fps,
         no_show=args.no_show,
+        solver=args.solver,
+        verbose=args.verbose,
     )
 
     if not args.no_show:

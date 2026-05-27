@@ -1,3 +1,15 @@
 numpy>=1.26.4
 matplotlib>=3.7
 scipy>=1.11
+
+[casadi]
+casadi>=3.6
+
+[jax]
+jax>=0.4
+jaxlib>=0.4
+
+[solvers]
+jax>=0.4
+jaxlib>=0.4
+casadi>=3.6

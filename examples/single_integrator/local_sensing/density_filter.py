@@ -8,7 +8,7 @@ EXAMPLE_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = Path(__file__).resolve().parents[3]
 sys.path[:0] = [str(REPO_ROOT), str(EXAMPLE_ROOT)]
 
-from density_utils.controllers import single_integrator_nominal_control, solve_discrete_density_filter
+from density_utils.controllers import SOLVER_CHOICES, single_integrator_nominal_control, solve_discrete_density_filter
 from density_utils.density import Obstacle
 from density_utils.dynamics import single_integrator_step
 from density_utils.sim import forward_euler
@@ -123,6 +123,8 @@ def main():
     parser.add_argument("--save-gif", action="store_true", help="Save animation as GIF.")
     parser.add_argument("--no-plot", action="store_true", help="Run the simulation without opening plots.")
     parser.add_argument("--steps", type=int, default=12000, help="Maximum simulation steps.")
+    parser.add_argument("--solver", choices=SOLVER_CHOICES, default="auto", help="Optimizer backend.")
+    parser.add_argument("--verbose", action="store_true", help="Print solver failure diagnostics.")
     parser.add_argument(
         "--u-nom",
         default="density",
@@ -218,6 +220,7 @@ def main():
                 u_max=u_max,
                 divergence=0.0,
                 slack_weight=slack_weight,
+                solver=args.solver,
                 return_info=True,
             )
             u = filter_result.u
@@ -273,15 +276,17 @@ def main():
 
     steps_taken = len(traj) - 1
     avg_control = control_time / max(steps_taken, 1)
-    print(
+    summary = (
         "steps="
         f"{steps_taken} "
         f"sim_time={_format_duration(control_time)} "
         f"avg_iteration={_format_duration(avg_control)} "
         f"min_clearance={min_clearance:.4f} "
-        f"max_slack={np.max(slacks):.2e} "
-        f"solver_failures={solver_failures}"
+        f"max_slack={np.max(slacks):.2e}"
     )
+    if args.verbose:
+        summary += f" solver_failures={solver_failures}"
+    print(summary)
     if sensed_counts:
         print(
             f"max_sensed={max(sensed_counts)} "

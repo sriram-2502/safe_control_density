@@ -6,6 +6,7 @@ import warnings
 import numpy as np
 from scipy.optimize import minimize
 
+from density_utils.controllers.solver_utils import require_solver
 from density_utils.dynamics import single_integrator_step
 
 
@@ -64,8 +65,10 @@ def solve_cbf_filter(
     u_min=-2.0,
     u_max=2.0,
     slack_weight=1e6,
+    slack_max=None,
     clf_slack_weight=1e3,
     control_weight=1.0,
+    solver="auto",
     return_info=False,
 ):
     """Solve one discrete-time CBF or CLF-CBF filter step.
@@ -82,6 +85,7 @@ def solve_cbf_filter(
     where ``delta >= 0`` is penalized. If ``u_nom`` is omitted, the objective
     minimizes control effort directly.
     """
+    require_solver(solver, ("scipy_slsqp",), controller="solve_cbf_filter")
     x = np.asarray(x, dtype=float)
     if x.ndim != 1:
         raise ValueError("x must be a vector")
@@ -182,7 +186,8 @@ def solve_cbf_filter(
             grad[clf_slack_index] = clf_slack_weight * z[clf_slack_index]
         return grad
 
-    opt_bounds = bounds + [(0.0, None)] * cbf_slack_count
+    slack_upper = None if slack_max is None else float(slack_max)
+    opt_bounds = bounds + [(0.0, slack_upper)] * cbf_slack_count
     if clf_slack_index is not None:
         opt_bounds.append((0.0, None))
     with warnings.catch_warnings():
@@ -201,7 +206,7 @@ def solve_cbf_filter(
             options={"ftol": 1e-9, "maxiter": 100, "disp": False},
         )
 
-    z = sol.x if sol.success else z0
+    z = sol.x if np.all(np.isfinite(sol.x)) else z0
     u = _clip_to_bounds(z[:control_dim], bounds)
     slack = np.maximum(z[control_dim : control_dim + cbf_slack_count], 0.0)
     clf_slack = max(float(z[clf_slack_index]), 0.0) if clf_slack_index is not None else 0.0

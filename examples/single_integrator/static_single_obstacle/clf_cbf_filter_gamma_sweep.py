@@ -11,6 +11,7 @@ EXAMPLE_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = Path(__file__).resolve().parents[3]
 sys.path[:0] = [str(REPO_ROOT), str(EXAMPLE_ROOT)]
 
+from density_utils.controllers import SOLVER_CHOICES
 from density_utils.density import Obstacle
 from density_utils.sim import forward_euler
 from density_utils.utils import plot_goal, plot_obstacle, plot_start
@@ -79,6 +80,8 @@ def _simulate_gamma(
     u_max,
     cbf_slack_weight,
     clf_slack_weight,
+    solver,
+    verbose=False,
 ):
     print(f"running CLF-CBF filter gamma={gamma:.3f}")
     x = start.copy()
@@ -105,6 +108,7 @@ def _simulate_gamma(
             u_max=u_max,
             cbf_slack_weight=cbf_slack_weight,
             clf_slack_weight=clf_slack_weight,
+            solver=solver,
         )
         solve_time = time.perf_counter() - solve_start
         solve_times.append(solve_time)
@@ -152,15 +156,17 @@ def _simulate_gamma(
     clearances = np.asarray(clearances, dtype=float)
     solve_times = np.asarray(solve_times, dtype=float)
 
-    print(
+    summary = (
         f"gamma={gamma:.3f} steps={len(traj) - 1} "
         f"final_dist={np.linalg.norm(traj[-1] - goal):.4f} "
         f"min_clearance={np.min(clearances):.4f} "
         f"max_cbf_slack={np.max(cbf_slacks):.2e} "
         f"max_clf_slack={np.max(clf_slacks):.2e} "
-        f"avg_solve_ms={np.mean(solve_times) * 1e3:.3f} "
-        f"solver_failures={solver_failures}"
+        f"avg_solve_ms={np.mean(solve_times) * 1e3:.3f}"
     )
+    if verbose:
+        summary += f" solver_failures={solver_failures}"
+    print(summary)
 
     return {
         "gamma": gamma,
@@ -398,6 +404,8 @@ def main():
     )
     parser.add_argument("--clf-rate", type=float, default=0.20, help="CLF decrease rate.")
     parser.add_argument("--steps", type=int, default=4000, help="Maximum simulation steps per gamma.")
+    parser.add_argument("--solver", choices=SOLVER_CHOICES, default="auto", help="Optimizer backend.")
+    parser.add_argument("--verbose", action="store_true", help="Print solver failure diagnostics.")
     parser.add_argument("--stride", type=int, default=8, help="Animation frame stride.")
     parser.add_argument("--fps", type=int, default=18, help="GIF playback frame rate.")
     parser.add_argument("--no-gif", action="store_true", help="Skip saving the dashboard GIF.")
@@ -441,6 +449,8 @@ def main():
             u_max=u_max,
             cbf_slack_weight=cbf_slack_weight,
             clf_slack_weight=clf_slack_weight,
+            solver=args.solver,
+            verbose=args.verbose,
         )
         for gamma in gammas
     ]

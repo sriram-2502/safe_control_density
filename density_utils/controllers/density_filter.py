@@ -10,6 +10,7 @@ import warnings
 import numpy as np
 from scipy.optimize import minimize
 
+from density_utils.controllers.solver_utils import require_solver
 from density_utils.density import density_value
 from density_utils.dynamics import single_integrator_step
 
@@ -83,6 +84,7 @@ def solve_discrete_density_filter(
     control_weight=1.0,
     min_density=1e-10,
     density_fn=density_value,
+    solver="auto",
     return_info=False,
 ):
     """Solve one discrete MPC-CDF density-filter step for ``x_dot = u``.
@@ -96,6 +98,7 @@ def solve_discrete_density_filter(
     control and state to have the same dimension, as in the single-integrator
     examples.
     """
+    require_solver(solver, ("scipy_slsqp",), controller="solve_discrete_density_filter")
     x = np.asarray(x, dtype=float)
     goal = np.asarray(goal, dtype=float)
     u_nom = np.asarray(u_nom, dtype=float)
