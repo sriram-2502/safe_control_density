@@ -43,36 +43,23 @@ web pages.
 
 ## Dynamics
 
-The unicycle state is
+The unicycle state and control are
 
 $$
-z =
-\begin{bmatrix}
-x & y & \theta
-\end{bmatrix}^\top,
+z = [x,\ y,\ \theta]^T,
+\qquad
+u = [v,\ \omega]^T.
 $$
 
-with control
+Here `x` and `y` are position, `theta` is heading, `v` is forward speed, and
+`omega` is yaw rate. The examples use forward Euler integration:
 
 $$
-u =
-\begin{bmatrix}
-v & \omega
-\end{bmatrix}^\top.
-$$
-
-The examples use forward Euler integration:
-
-$$
-x_{k+1}=x_k+\Delta t\,v_k\cos\theta_k
-$$
-
-$$
-y_{k+1}=y_k+\Delta t\,v_k\sin\theta_k
-$$
-
-$$
-\theta_{k+1}=\theta_k+\Delta t\,\omega_k.
+\begin{aligned}
+x_{k+1} &= x_k + \Delta t\,v_k\cos\theta_k,\\
+y_{k+1} &= y_k + \Delta t\,v_k\sin\theta_k,\\
+\theta_{k+1} &= \theta_k + \Delta t\,\omega_k.
+\end{aligned}
 $$
 
 ## Obstacles
@@ -82,34 +69,30 @@ sensing/density radius \(r_2\). For obstacle \(i\), define
 
 $$
 d_i(p)=
-\left\|
-S_i^{-1}R(-\theta_i)(p-c_i)
-\right\|_{p_i},
+\|S_i^{-1}R(-\theta_i)(p-c_i)\|_{p_i},
 $$
 
 where \(c_i\) is the obstacle center, \(R(-\theta_i)\) rotates into the obstacle
 frame, and \(S_i\) is an optional diagonal scaling matrix. The agent radius is
 handled by inflating \(r_1\) and \(r_2\) before computing controls.
 
-The smooth obstacle bump is
+The smooth obstacle bump \(b_i(p)\) is:
+
+- \(b_i(p)=0\) when \(d_i(p)\le r_{1,i}\).
+- \(b_i(p)=1\) when \(d_i(p)\ge r_{2,i}\).
+- In the transition band \(r_{1,i}<d_i(p)<r_{2,i}\),
 
 $$
 b_i(p)=
-\begin{cases}
-0, & d_i(p)\le r_{1,i},\\
-1, & d_i(p)\ge r_{2,i},\\
-\dfrac{\exp(-1/m_i)}
-{\exp(-1/m_i)+\exp(-1/(1-m_i))},
-& r_{1,i}<d_i(p)<r_{2,i},
-\end{cases}
+\frac{\exp(-1/m_i)}
+{\exp(-1/m_i)+\exp(-1/(1-m_i))}.
 $$
 
-with
+The normalized transition coordinate is
 
 $$
 m_i(p)=
-\frac{d_i(p)^{p_i}-r_{1,i}^{p_i}}
-{r_{2,i}^{p_i}-r_{1,i}^{p_i}}.
+\frac{d_i(p)^{p_i}-r_{1,i}^{p_i}}{r_{2,i}^{p_i}-r_{1,i}^{p_i}}.
 $$
 
 ## Density Function
@@ -118,8 +101,7 @@ The direct feedback controller uses a position density
 
 $$
 \rho(p)=
-\frac{\Phi(p)}
-{\lVert p-p_g\rVert^{2\alpha}},
+\frac{\Phi(p)}{\|p-p_g\|^{2\alpha}},
 \qquad
 \Phi(p)=\prod_i b_i(p).
 $$
@@ -127,20 +109,13 @@ $$
 The filter and MPC examples use a pose density
 
 $$
-\rho(z)=
-\frac{\Phi(p)}
-{V(z)^\alpha},
+\rho(z)=\frac{\Phi(p)}{V(z)^\alpha},
 $$
 
 where
 
 $$
-V(z)=
-(x-x_g)^2
-+
-(y-y_g)^2
-+
-w_\theta\,\mathrm{wrap}(\theta-\theta_g)^2,
+V(z)=(x-x_g)^2+(y-y_g)^2+w_\theta\,\mathrm{wrap}(\theta-\theta_g)^2,
 \qquad
 w_\theta=0.05.
 $$
@@ -159,7 +134,7 @@ $$
 The planar vector is converted to unicycle commands:
 
 $$
-v=\lVert u_\rho\rVert,
+v=\|u_\rho\|,
 \qquad
 \theta_d=\mathrm{atan2}(u_{\rho,y},u_{\rho,x}),
 $$
@@ -190,20 +165,13 @@ Objective:
 
 $$
 \min_{u,s}
-\frac{1}{2}\lVert u-u_{\mathrm{nom}}\rVert_W^2
-+
-\frac{1}{2}w_s\lVert s\rVert^2
+\; \frac{1}{2}\|u-u_{\mathrm{nom}}\|_W^2+\frac{1}{2}w_s\|s\|^2
 $$
 
 Subject to:
 
 $$
-\rho(z_{k+1})-\rho(z_k)
-+
-\Delta t\,\mathrm{div}(F_d)(z_k)\rho(z_k)
-+
-s
-\ge 0
+\rho(z_{k+1})-\rho(z_k)+\Delta t\,\mathrm{div}(F_d)(z_k)\rho(z_k)+s \ge 0
 $$
 
 $$
@@ -234,15 +202,9 @@ The density MPC extends the density condition across a finite horizon. It solves
 for
 
 $$
-U=
-\begin{bmatrix}
-u_0 & \cdots & u_{N-1}
-\end{bmatrix},
+U=[u_0,\ldots,u_{N-1}],
 \qquad
-u_k=
-\begin{bmatrix}
-v_k & \omega_k
-\end{bmatrix}^\top,
+u_k=[v_k,\omega_k]^T,
 $$
 
 with predicted dynamics
@@ -254,12 +216,7 @@ $$
 For each prediction step, the MPC enforces the density transport condition
 
 $$
-\rho(z_{k+1})-\rho(z_k)
-+
-\Delta t\,\mathrm{div}(F_d)(z_k)\rho(z_k)
--
-\Delta t\,C_k\rho(z_k)
-\ge 0,
+\rho(z_{k+1})-\rho(z_k)+\Delta t\,\mathrm{div}(F_d)(z_k)\rho(z_k)-\Delta t\,C_k\rho(z_k)\ge 0,
 $$
 
 where \(C_k\ge 0\) is a density-rate decision variable. This follows the
@@ -280,7 +237,7 @@ The one-step CLF-CBF filter uses a circular barrier around the inflated
 obstacle:
 
 $$
-h(z)=\lVert p-p_o\rVert^2-R^2.
+h(z)=\|p-p_o\|^2-R^2.
 $$
 
 The safe set is
@@ -300,10 +257,7 @@ $$
 The goal-reaching CLF is
 
 $$
-V(z)=
-\lVert p-p_g\rVert^2
-+
-w_\theta\,\mathrm{wrap}(\theta-\theta_g)^2.
+V(z)=\|p-p_g\|^2+w_\theta\,\mathrm{wrap}(\theta-\theta_g)^2.
 $$
 
 The relaxed one-step CLF condition is
@@ -318,9 +272,7 @@ The implemented filter solves
 
 $$
 \min_{u,\delta}
-\frac{1}{2}\lVert u\rVert_W^2
-+
-\frac{1}{2}w_\delta\delta^2
+\; \frac{1}{2}\|u\|_W^2+\frac{1}{2}w_\delta\delta^2
 $$
 
 subject to the CBF condition, the relaxed CLF condition, and the control bounds.
@@ -338,27 +290,16 @@ python examples/unicycle/static_single_obstacle/clf_cbf_filter.py --no-plot
 For the Euler-discretized unicycle,
 
 $$
-p_{k+1} = p_k+\Delta t\,v_k
-\begin{bmatrix}
-\cos\theta_k\\
-\sin\theta_k
-\end{bmatrix}.
+p_{k+1} = p_k+\Delta t\,v_k e(\theta_k),
+\qquad
+e(\theta_k)=[\cos\theta_k,\ \sin\theta_k]^T.
 $$
 
 The one-step circular CBF is
 
 $$
 h(z_{k+1}) =
-\left\lVert
-p_k+\Delta t\,v_k e(\theta_k)-p_o
-\right\rVert^2
--R^2,
-\qquad
-e(\theta_k)=
-\begin{bmatrix}
-\cos\theta_k\\
-\sin\theta_k
-\end{bmatrix}.
+\|p_k+\Delta t\,v_k e(\theta_k)-p_o\|^2-R^2.
 $$
 
 This expression depends on \(v_k\), but not on \(\omega_k\). The yaw-rate
@@ -504,6 +445,7 @@ animations:
 ```bash
 python examples/unicycle/local_sensing/density_mpc.py --save-mp4 --horizon 7 --no-plot
 ```
+
 Static multi-obstacle results:
 
 ![Static multi obstacle density feedback](animations/unicycle_multi.gif)
