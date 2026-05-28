@@ -13,7 +13,7 @@ from density_utils.density import Obstacle
 from density_utils.dynamics import unicycle_step
 from density_utils.utils.timing import TimedBlock
 
-from _plotting import plot_unicycle_results
+from _plotting import add_animation_save_args, animation_save_paths, plot_unicycle_results, wants_animation_output
 
 
 def _wrap_angle(angle):
@@ -22,7 +22,7 @@ def _wrap_angle(angle):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--save-gif", action="store_true", help="Save animation as GIF.")
+    add_animation_save_args(parser)
     parser.add_argument("--no-plot", action="store_true", help="Run without opening plots.")
     args = parser.parse_args()
 
@@ -40,12 +40,12 @@ def main():
     k_heading = 2.0
     v_max = 2.0
     omega_max = 3.0
-    animate = not args.no_plot
-    save_animation = args.save_gif
+    animate = not args.no_plot or wants_animation_output(args)
     animation_stride = 10
     animation_fps = 30
     animation_format = "gif"
-    animation_path = Path("animations") / f"unicycle_static.{animation_format}"
+    animation_path = EXAMPLE_ROOT / "animations" / f"unicycle_static.{animation_format}"
+    animation_paths = animation_save_paths(animation_path, save_gif=args.save_gif, save_mp4=args.save_mp4)
 
     agent_radius = 0.1
     start = np.array([-2.0, -1.0])
@@ -140,7 +140,7 @@ def main():
             std_ms = control_times.std() * 1e3
             print(f"avg_iteration_outside_goal={mean_ms:.3f} [ms] std={std_ms:.3f} [ms]")
 
-    if not args.no_plot:
+    if not args.no_plot or wants_animation_output(args):
         plot_unicycle_results(
             traj=traj,
             controls=controls,
@@ -151,10 +151,14 @@ def main():
             agent_radius=agent_radius,
             title="Unicycle - Static Obstacle (Density Feedback)",
             animate=animate,
-            save_animation=save_animation,
+            save_animation=False,
             animation_path=animation_path,
             animation_stride=animation_stride,
             animation_fps=animation_fps,
+            animation_paths=animation_paths,
+            show_plot=not args.no_plot,
+            mp4_crf=args.mp4_crf,
+            mp4_preset=args.mp4_preset,
         )
 
 

@@ -24,14 +24,22 @@ python -m pip install -e .
 python -m pip install pillow
 ```
 
+Install `ffmpeg` when you want compact MP4 exports:
+
+```bash
+sudo apt-get install ffmpeg
+```
+
 Most scripts can be run from the repository root:
 
 ```bash
 python examples/unicycle/static_single_obstacle/compare_safety_filters.py --no-show
 ```
 
-Use `--no-plot` or `--no-show` for headless runs. Use `--save-gif` on the
-single-controller scripts when you want their basic animation path.
+Use `--no-plot` or `--no-show` for headless runs. Use `--save-gif` or
+`--save-mp4` on the single-controller scripts when you want animation files.
+MP4 exports use a fixed square layout and compact H.264 settings for slides and
+web pages.
 
 ## Dynamics
 
@@ -490,6 +498,12 @@ python examples/unicycle/local_sensing/density_mpc.py --save-gif --horizon 7
 python examples/unicycle/local_sensing/density_filter_reactive_fov.py --save-gif
 ```
 
+Use `--save-mp4` instead of, or alongside, `--save-gif` to write compact MP4
+animations:
+
+```bash
+python examples/unicycle/local_sensing/density_mpc.py --save-mp4 --horizon 7 --no-plot
+```
 Static multi-obstacle results:
 
 ![Static multi obstacle density feedback](animations/unicycle_multi.gif)
@@ -511,10 +525,12 @@ Local sensing results:
 ## Common Options
 
 ```bash
---save-gif       save a GIF animation
---no-plot        skip plotting and animation
---no-show        save comparison outputs without opening matplotlib windows
---steps N        override maximum simulation steps
+--save-gif        save a GIF animation
+--save-mp4        save a compact MP4 animation
+--mp4-crf N       tune MP4 size/quality; higher is smaller, default 28
+--no-plot         skip interactive windows while still saving requested files
+--no-show         save comparison outputs without opening matplotlib windows
+--steps N         override maximum simulation steps
 ```
 
 For quick non-visual checks:

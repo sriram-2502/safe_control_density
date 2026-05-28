@@ -6,6 +6,11 @@ from matplotlib import animation, patches
 
 from density_utils.utils import plot_goal, plot_obstacle, plot_start
 
+VIDEO_FIGSIZE = (6.0, 6.0)
+VIDEO_DPI = 120
+MP4_CRF = 28
+MP4_PRESET = "slow"
+
 
 def _angle_wrap(angle):
     return (angle + np.pi) % (2.0 * np.pi) - np.pi
@@ -71,6 +76,93 @@ def _detect_sensed_obstacles(pos, heading, obstacles, cam_range, fov_angle):
     return [obs for _, obs in sensed]
 
 
+def add_animation_save_args(parser):
+    parser.add_argument("--save-gif", action="store_true", help="Save animation as GIF.")
+    parser.add_argument("--save-mp4", action="store_true", help="Save a compact MP4 animation.")
+    parser.add_argument(
+        "--mp4-crf",
+        type=int,
+        default=MP4_CRF,
+        help="MP4 quality factor. Higher is smaller; 26-30 is useful for slides/web.",
+    )
+    parser.add_argument(
+        "--mp4-preset",
+        default=MP4_PRESET,
+        help="ffmpeg x264 preset used for MP4 export.",
+    )
+
+
+def animation_save_paths(base_path, *, save_gif=False, save_mp4=False):
+    base_path = Path(base_path)
+    paths = []
+    if save_gif:
+        paths.append(base_path.with_suffix(".gif"))
+    if save_mp4:
+        paths.append(base_path.with_suffix(".mp4"))
+    return paths
+
+
+def wants_animation_output(args):
+    return bool(getattr(args, "save_gif", False) or getattr(args, "save_mp4", False))
+
+
+def _obstacle_extent(obs):
+    radius = float(obs.r2)
+    if obs.scale is not None:
+        radius *= float(np.max(np.asarray(obs.scale, dtype=float)))
+    return radius
+
+
+def _set_standard_plan_limits(ax, traj, start, goal, obstacles, extra_radius=0.0):
+    points = [np.asarray(traj[:, :2], dtype=float), np.asarray([start, goal], dtype=float)]
+    mins = []
+    maxs = []
+    for pts in points:
+        mins.append(np.min(pts, axis=0))
+        maxs.append(np.max(pts, axis=0))
+    for obs in obstacles:
+        radius = _obstacle_extent(obs)
+        mins.append(np.asarray(obs.center, dtype=float) - radius)
+        maxs.append(np.asarray(obs.center, dtype=float) + radius)
+    lower = np.min(np.asarray(mins, dtype=float), axis=0)
+    upper = np.max(np.asarray(maxs, dtype=float), axis=0)
+    center = 0.5 * (lower + upper)
+    width = float(np.max(upper - lower))
+    half_width = 0.5 * max(width + 2.0 * extra_radius, 1.0)
+    padding = max(0.10 * half_width, 0.15)
+    half_width += padding
+    ax.set_xlim(center[0] - half_width, center[0] + half_width)
+    ax.set_ylim(center[1] - half_width, center[1] + half_width)
+
+
+def _animation_writer(path, fps, *, mp4_crf=MP4_CRF, mp4_preset=MP4_PRESET):
+    path = Path(path)
+    if path.suffix == ".mp4":
+        return animation.FFMpegWriter(
+            fps=fps,
+            codec="libx264",
+            bitrate=-1,
+            extra_args=[
+                "-pix_fmt",
+                "yuv420p",
+                "-crf",
+                str(int(mp4_crf)),
+                "-preset",
+                str(mp4_preset),
+                "-movflags",
+                "+faststart",
+            ],
+        )
+    return animation.PillowWriter(fps=fps)
+
+
+def save_animation_file(ani, path, fps, *, mp4_crf=MP4_CRF, mp4_preset=MP4_PRESET):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    ani.save(path, writer=_animation_writer(path, fps, mp4_crf=mp4_crf, mp4_preset=mp4_preset), dpi=VIDEO_DPI)
+    print(f"saved animation to {path}")
+
+
 def _plot_time_series(traj, controls, dt, slacks=None):
     rows = 3
     fig, axes = plt.subplots(rows, 2, figsize=(9, 7))
@@ -116,6 +208,10 @@ def plot_unicycle_results(
     fov_active=None,
     max_sensed=5,
     animation_interval=20,
+    animation_paths=None,
+    show_plot=True,
+    mp4_crf=MP4_CRF,
+    mp4_preset=MP4_PRESET,
 ):
     """Plot common unicycle traces and plan-view animation."""
     traj = np.asarray(traj, dtype=float)
@@ -124,9 +220,10 @@ def plot_unicycle_results(
     fov_active = None if fov_active is None else np.asarray(fov_active, dtype=bool)
     show_fov = inflated_obstacles is not None and fov_angle is not None and cam_range is not None
 
-    _plot_time_series(traj, controls, dt, slacks=slacks)
+    if show_plot:
+        _plot_time_series(traj, controls, dt, slacks=slacks)
 
-    fig, ax = plt.subplots(figsize=(6, 6))
+    fig, ax = plt.subplots(figsize=VIDEO_FIGSIZE, dpi=VIDEO_DPI)
     plot_start(ax, start)
     plot_goal(ax, goal)
     for obs in obstacles:
@@ -143,6 +240,14 @@ def plot_unicycle_results(
         )
 
     ax.set_aspect("equal", adjustable="box")
+    _set_standard_plan_limits(
+        ax,
+        traj,
+        start,
+        goal,
+        obstacles,
+        extra_radius=float(cam_range) if show_fov else float(agent_radius),
+    )
     ax.set_xlabel("x")
     ax.set_ylabel("y")
     ax.set_title(title)
@@ -150,8 +255,11 @@ def plot_unicycle_results(
 
     if not animate:
         ax.plot(traj[:, 0], traj[:, 1], color="tab:blue", linewidth=2)
-        plt.tight_layout()
-        plt.show()
+        fig.subplots_adjust(left=0.12, right=0.96, bottom=0.10, top=0.92)
+        if show_plot:
+            plt.show()
+        else:
+            plt.close(fig)
         return
 
     line, = ax.plot([], [], color="tab:blue", linewidth=2)
@@ -251,23 +359,24 @@ def plot_unicycle_results(
         blit=True,
         repeat=False,
     )
+    paths = []
     if save_animation:
-        animation_path = Path(animation_path)
-        animation_path.parent.mkdir(parents=True, exist_ok=True)
+        paths.append(Path(animation_path))
+    if animation_paths is not None:
+        paths.extend(Path(path) for path in animation_paths)
+
+    fig.subplots_adjust(left=0.12, right=0.96, bottom=0.10, top=0.92)
+    for path in paths:
         try:
-            if animation_path.suffix == ".mp4":
-                writer = animation.FFMpegWriter(fps=animation_fps)
-            else:
-                writer = animation.PillowWriter(fps=animation_fps)
-            ani.save(animation_path, writer=writer)
-            print(f"saved animation to {animation_path}")
+            save_animation_file(ani, path, animation_fps, mp4_crf=mp4_crf, mp4_preset=mp4_preset)
         except Exception:
-            if animation_path.suffix == ".mp4":
-                fallback = animation_path.with_suffix(".gif")
-                ani.save(fallback, writer=animation.PillowWriter(fps=animation_fps))
-                print(f"saved animation to {fallback}")
+            if path.suffix == ".mp4":
+                fallback = path.with_suffix(".gif")
+                save_animation_file(ani, fallback, animation_fps)
             else:
                 raise
 
-    plt.tight_layout()
-    plt.show()
+    if show_plot:
+        plt.show()
+    else:
+        plt.close(fig)

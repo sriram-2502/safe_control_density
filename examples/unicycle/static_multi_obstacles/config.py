@@ -29,7 +29,7 @@ CONFIG = {
     },
     "density": {
         "alpha": 0.4,
-        "ctrl_multiplier": 4.0,
+        "ctrl_multiplier": 1.0,
         "rad_from_goal": 0.35,
         "q_lqr": 4.0,
         "r_lqr": 1.0,
@@ -38,7 +38,7 @@ CONFIG = {
     },
     "control": {
         "v_max": 2.0,
-        "omega_max": 4.0,
+        "omega_max": 2.0,
         "k_heading": 4.0,
     },
     "animation": {

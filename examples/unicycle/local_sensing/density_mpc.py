@@ -12,7 +12,7 @@ from density_utils.controllers import SOLVER_CHOICES, solve_density_mpc
 from density_utils.dynamics import unicycle_step
 from density_utils.utils.timing import TimedBlock
 
-from _plotting import plot_unicycle_results
+from _plotting import add_animation_save_args, animation_save_paths, plot_unicycle_results, wants_animation_output
 from config import CONFIG
 from density_filter import (
     _as_array,
@@ -38,7 +38,7 @@ def _shift_controls(controls):
 
 def main(highlight_reactive_fov=False):
     parser = argparse.ArgumentParser()
-    parser.add_argument("--save-gif", action="store_true", help="Save animation as GIF.")
+    add_animation_save_args(parser)
     parser.add_argument("--no-plot", action="store_true", help="Run without opening plots.")
     parser.add_argument("--steps", type=int, default=None, help="Override maximum simulation steps.")
     parser.add_argument("--horizon", type=int, default=7, help="MPC prediction horizon.")
@@ -51,6 +51,12 @@ def main(highlight_reactive_fov=False):
         help="Override MPC prediction step. Defaults to --dt when set, otherwise config density_dt.",
     )
     parser.add_argument("--reactive-fov", action="store_true", help="Highlight active camera field-of-view frames.")
+    parser.add_argument(
+        "--linger-steps",
+        type=int,
+        default=None,
+        help="Override how many MPC iterations a sensed obstacle remains in memory.",
+    )
     parser.add_argument("--verbose", action="store_true", help="Print solver failure diagnostics.")
     args = parser.parse_args()
     highlight_reactive_fov = highlight_reactive_fov or args.reactive_fov
@@ -79,15 +85,19 @@ def main(highlight_reactive_fov=False):
     cam_range = float(sensing_cfg["cam_range"])
     fov_angle = np.deg2rad(float(sensing_cfg["fov_angle_deg"]))
     max_sensed = int(sensing_cfg["max_sensed"])
-    linger_steps = int(sensing_cfg["linger_steps"])
+    default_linger_steps = sensing_cfg.get("mpc_linger_steps", sensing_cfg["linger_steps"])
+    linger_steps = int(args.linger_steps) if args.linger_steps is not None else int(default_linger_steps)
+    if linger_steps < 1:
+        raise ValueError("--linger-steps must be at least 1")
     horizon = int(args.horizon)
-    animate = not args.no_plot
+    animate = not args.no_plot or wants_animation_output(args)
     animation_name = (
         "unicycle_local_sensing_mpc_reactive_fov.gif"
         if highlight_reactive_fov
         else "unicycle_local_sensing_mpc.gif"
     )
     animation_path = EXAMPLE_ROOT / "animations" / animation_name
+    animation_paths = animation_save_paths(animation_path, save_gif=args.save_gif, save_mp4=args.save_mp4)
 
     agent_radius = float(scenario_cfg["agent_radius"])
     start = _as_array(scenario_cfg["start"])
@@ -146,13 +156,13 @@ def main(highlight_reactive_fov=False):
                 u_min=u_min,
                 u_max=u_max,
                 divergence=0.0,
-                slack_weight=0.0,
+                slack_weight=1.0,
                 slack_l1_weight=1.0,
                 control_weight=np.diag([0.01, 0.01]),
                 control_rate_weight=1.0,
                 previous_control=previous_control,
                 state_weight=np.diag([30.0, 30.0, 10.0]),
-                terminal_weight=1000.0,
+                terminal_weight=500.0,
                 density_fn=density_fn,
                 initial_controls=initial_controls,
                 return_info=True,
@@ -215,7 +225,7 @@ def main(highlight_reactive_fov=False):
         summary += f" solver_failures={solver_failures}"
     print(summary)
 
-    if not args.no_plot:
+    if not args.no_plot or wants_animation_output(args):
         plot_unicycle_results(
             traj=traj,
             controls=controls,
@@ -226,7 +236,7 @@ def main(highlight_reactive_fov=False):
             agent_radius=agent_radius,
             title=f"Unicycle - Local Sensing (Density MPC, N={horizon})",
             animate=animate,
-            save_animation=args.save_gif,
+            save_animation=False,
             animation_path=animation_path,
             animation_stride=int(animation_cfg["stride"]),
             animation_fps=int(animation_cfg["fps"]),
@@ -236,6 +246,10 @@ def main(highlight_reactive_fov=False):
             cam_range=cam_range,
             fov_active=fov_active if highlight_reactive_fov else None,
             max_sensed=max_sensed,
+            animation_paths=animation_paths,
+            show_plot=not args.no_plot,
+            mp4_crf=args.mp4_crf,
+            mp4_preset=args.mp4_preset,
         )
 
 

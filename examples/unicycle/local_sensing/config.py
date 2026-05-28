@@ -17,14 +17,14 @@ CONFIG = {
         "dt": 0.05,
         "density_dt": 0.1,
         "steps": 12000,
-        "stop_tol": 0.01,
+        "stop_tol": 0.1,
         "stop_steps": 500,
         "print_interval": 100,
     },
     "scenario": {
         "agent_radius": 0.1,
         "start": [-2.1, -2.1],
-        "goal": [2.0, 2.0],
+        "goal": [1.8, 2.0],
         "obstacles": OBSTACLES,
     },
     "density": {
@@ -45,6 +45,7 @@ CONFIG = {
         "fov_angle_deg": 80.0,
         "max_sensed": 5,
         "linger_steps": 200,
+        "mpc_linger_steps": 500,
     },
     "animation": {
         "path": "animations/unicycle_local_sensing_filter.gif",

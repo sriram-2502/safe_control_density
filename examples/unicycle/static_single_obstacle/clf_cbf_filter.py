@@ -12,7 +12,7 @@ from density_utils.controllers import SOLVER_CHOICES, solve_cbf_filter
 from density_utils.dynamics import unicycle_step
 from density_utils.utils.timing import TimedBlock
 
-from _plotting import plot_unicycle_results
+from _plotting import add_animation_save_args, animation_save_paths, plot_unicycle_results, wants_animation_output
 from config import CONFIG
 from density_filter import (
     _as_array,
@@ -51,7 +51,7 @@ def _clf_fn(goal_state, theta_weight=0.05):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--save-gif", action="store_true", help="Save animation as GIF.")
+    add_animation_save_args(parser)
     parser.add_argument("--no-plot", action="store_true", help="Run without opening plots.")
     parser.add_argument("--steps", type=int, default=None, help="Override maximum simulation steps.")
     parser.add_argument("--gamma", type=float, default=0.85, help="Discrete-time CBF rate in (0, 1].")
@@ -74,7 +74,8 @@ def main():
     u_min, u_max = _control_bounds(control_cfg)
     animation_stride = int(animation_cfg["stride"])
     animation_fps = int(animation_cfg["fps"])
-    animation_path = Path("animations/unicycle_static_clf_cbf_filter.gif")
+    animation_path = EXAMPLE_ROOT / "animations/unicycle_static_clf_cbf_filter.gif"
+    animation_paths = animation_save_paths(animation_path, save_gif=args.save_gif, save_mp4=args.save_mp4)
 
     agent_radius = float(scenario_cfg["agent_radius"])
     start = _as_array(scenario_cfg["start"])
@@ -185,7 +186,7 @@ def main():
         summary += f" solver_failures={solver_failures}"
     print(summary)
 
-    if not args.no_plot:
+    if not args.no_plot or wants_animation_output(args):
         plot_unicycle_results(
             traj=traj,
             controls=controls,
@@ -195,12 +196,16 @@ def main():
             obstacles=[obstacle],
             agent_radius=agent_radius,
             title=f"Unicycle - Static Obstacle (CLF-CBF filter, gamma={args.gamma:.2f})",
-            animate=not args.no_plot,
-            save_animation=args.save_gif,
+            animate=not args.no_plot or wants_animation_output(args),
+            save_animation=False,
             animation_path=animation_path,
             animation_stride=animation_stride,
             animation_fps=animation_fps,
             slacks=cbf_slacks,
+            animation_paths=animation_paths,
+            show_plot=not args.no_plot,
+            mp4_crf=args.mp4_crf,
+            mp4_preset=args.mp4_preset,
         )
 
 

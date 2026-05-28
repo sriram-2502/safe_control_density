@@ -329,6 +329,9 @@ def main():
     )
     parser.add_argument("--verbose", action="store_true", help="Print solver failure diagnostics.")
     parser.add_argument("--no-gif", action="store_true", help="Skip saving the dashboard GIF.")
+    parser.add_argument("--save-mp4", action="store_true", help="Save the dashboard animation as compact MP4.")
+    parser.add_argument("--mp4-crf", type=int, default=28, help="MP4 quality factor. Higher is smaller.")
+    parser.add_argument("--mp4-preset", default="slow", help="ffmpeg x264 preset.")
     parser.add_argument("--no-show", action="store_true", help="Save outputs without opening matplotlib windows.")
     args = parser.parse_args()
 
@@ -413,6 +416,7 @@ def main():
     xy_path = output_dir / "unicycle_static_safety_filters_xy.png"
     ts_path = output_dir / "unicycle_static_safety_filters_timeseries.png"
     gif_path = output_dir / "unicycle_static_safety_filters.gif"
+    mp4_path = gif_path.with_suffix(".mp4")
 
     figures = [
         dashboard._plot_xy(results, start=start, goal=goal, agent_radius=agent_radius, path=xy_path),
@@ -428,6 +432,22 @@ def main():
             path=gif_path,
             stride=args.stride,
             fps=args.fps,
+            mp4_crf=args.mp4_crf,
+            mp4_preset=args.mp4_preset,
+        )
+        figures.append(fig)
+        animations_to_show.append(ani)
+    if args.save_mp4:
+        fig, ani = dashboard._save_dashboard_animation(
+            results,
+            start=start,
+            goal=goal,
+            agent_radius=agent_radius,
+            path=mp4_path,
+            stride=args.stride,
+            fps=args.fps,
+            mp4_crf=args.mp4_crf,
+            mp4_preset=args.mp4_preset,
         )
         figures.append(fig)
         animations_to_show.append(ani)
@@ -436,6 +456,8 @@ def main():
     print(f"saved time-series plot: {ts_path}")
     if not args.no_gif:
         print(f"saved dashboard GIF: {gif_path}")
+    if args.save_mp4:
+        print(f"saved dashboard MP4: {mp4_path}")
 
     if args.no_show:
         for fig in figures:

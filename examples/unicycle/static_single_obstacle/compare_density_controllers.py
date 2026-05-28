@@ -22,6 +22,7 @@ from density_utils.density import Obstacle, density_value
 from density_utils.dynamics import unicycle_step
 from density_utils.utils import plot_goal, plot_obstacle, plot_start
 
+from _plotting import save_animation_file
 from config import CONFIG
 from density_filter import (
     _as_array,
@@ -495,7 +496,7 @@ def _plot_time_series(results, *, goal, path):
     return fig
 
 
-def _save_dashboard_animation(results, *, start, goal, agent_radius, path, stride, fps):
+def _save_dashboard_animation(results, *, start, goal, agent_radius, path, stride, fps, mp4_crf=28, mp4_preset="slow"):
     max_time = max((len(result["traj"]) - 1) * result["dt"] for result in results)
     frame_times = np.arange(0.0, max_time + 1e-9, min(result["dt"] for result in results) * stride)
     if frame_times[-1] < max_time:
@@ -646,8 +647,7 @@ def _save_dashboard_animation(results, *, start, goal, agent_radius, path, strid
         blit=True,
         repeat=False,
     )
-    path.parent.mkdir(parents=True, exist_ok=True)
-    ani.save(path, writer=animation.PillowWriter(fps=fps))
+    save_animation_file(ani, path, fps, mp4_crf=mp4_crf, mp4_preset=mp4_preset)
     return fig, ani
 
 
@@ -698,6 +698,9 @@ def main():
     )
     parser.add_argument("--verbose", action="store_true", help="Print solver failure diagnostics.")
     parser.add_argument("--no-gif", action="store_true", help="Skip saving the dashboard GIF.")
+    parser.add_argument("--save-mp4", action="store_true", help="Save the dashboard animation as compact MP4.")
+    parser.add_argument("--mp4-crf", type=int, default=28, help="MP4 quality factor. Higher is smaller.")
+    parser.add_argument("--mp4-preset", default="slow", help="ffmpeg x264 preset.")
     parser.add_argument("--no-show", action="store_true", help="Save outputs without opening matplotlib windows.")
     args = parser.parse_args()
 
@@ -760,6 +763,7 @@ def main():
     xy_path = output_dir / "unicycle_static_density_controllers_xy.png"
     ts_path = output_dir / "unicycle_static_density_controllers_timeseries.png"
     gif_path = output_dir / "unicycle_static_density_controllers.gif"
+    mp4_path = gif_path.with_suffix(".mp4")
 
     figures = [
         _plot_xy(results, start=start, goal=goal, agent_radius=agent_radius, path=xy_path),
@@ -775,6 +779,22 @@ def main():
             path=gif_path,
             stride=args.stride,
             fps=args.fps,
+            mp4_crf=args.mp4_crf,
+            mp4_preset=args.mp4_preset,
+        )
+        figures.append(fig)
+        animations_to_show.append(ani)
+    if args.save_mp4:
+        fig, ani = _save_dashboard_animation(
+            results,
+            start=start,
+            goal=goal,
+            agent_radius=agent_radius,
+            path=mp4_path,
+            stride=args.stride,
+            fps=args.fps,
+            mp4_crf=args.mp4_crf,
+            mp4_preset=args.mp4_preset,
         )
         figures.append(fig)
         animations_to_show.append(ani)
@@ -783,6 +803,8 @@ def main():
     print(f"saved time-series plot: {ts_path}")
     if not args.no_gif:
         print(f"saved dashboard GIF: {gif_path}")
+    if args.save_mp4:
+        print(f"saved dashboard MP4: {mp4_path}")
 
     if args.no_show:
         for fig in figures:

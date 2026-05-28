@@ -20,6 +20,7 @@ from density_utils.density import Obstacle, density_value
 from density_utils.dynamics import unicycle_step
 from density_utils.utils import plot_goal, plot_obstacle, plot_start
 
+from _plotting import save_animation_file
 from density_filter import (
     _p_norm_distance,
     _pose_density,
@@ -406,7 +407,20 @@ def _plot_time_series(results, *, goal, path, colors, title):
     return fig
 
 
-def _save_dashboard_animation(results, *, start, goal, agent_radius, path, stride, fps, colors, title):
+def _save_dashboard_animation(
+    results,
+    *,
+    start,
+    goal,
+    agent_radius,
+    path,
+    stride,
+    fps,
+    colors,
+    title,
+    mp4_crf=28,
+    mp4_preset="slow",
+):
     max_time = max((len(result["traj"]) - 1) * result["dt"] for result in results)
     frame_times = np.arange(0.0, max_time + 1e-9, min(result["dt"] for result in results) * stride)
     if frame_times[-1] < max_time:
@@ -552,8 +566,7 @@ def _save_dashboard_animation(results, *, start, goal, agent_radius, path, strid
         blit=True,
         repeat=False,
     )
-    path.parent.mkdir(parents=True, exist_ok=True)
-    ani.save(path, writer=animation.PillowWriter(fps=fps))
+    save_animation_file(ani, path, fps, mp4_crf=mp4_crf, mp4_preset=mp4_preset)
     return fig, ani
 
 
@@ -572,6 +585,9 @@ def _run_controller(
     stride,
     fps,
     no_show,
+    save_mp4=False,
+    mp4_crf=28,
+    mp4_preset="slow",
     solver="auto",
     verbose=False,
 ):
@@ -611,6 +627,7 @@ def _run_controller(
     xy_path = output_dir / f"unicycle_{label}_sensing_radius_sweep_xy.png"
     ts_path = output_dir / f"unicycle_{label}_sensing_radius_sweep_timeseries.png"
     gif_path = output_dir / f"unicycle_{label}_sensing_radius_sweep.gif"
+    mp4_path = gif_path.with_suffix(".mp4")
 
     figures = [
         _plot_xy(results, start=start, goal=goal, agent_radius=agent_radius, path=xy_path, colors=colors, title=title),
@@ -628,6 +645,24 @@ def _run_controller(
             fps=fps,
             colors=colors,
             title=title,
+            mp4_crf=mp4_crf,
+            mp4_preset=mp4_preset,
+        )
+        figures.append(fig)
+        animations_to_show.append(ani)
+    if save_mp4:
+        fig, ani = _save_dashboard_animation(
+            results,
+            start=start,
+            goal=goal,
+            agent_radius=agent_radius,
+            path=mp4_path,
+            stride=stride,
+            fps=fps,
+            colors=colors,
+            title=title,
+            mp4_crf=mp4_crf,
+            mp4_preset=mp4_preset,
         )
         figures.append(fig)
         animations_to_show.append(ani)
@@ -636,6 +671,8 @@ def _run_controller(
     print(f"saved {controller} time-series plot: {ts_path}")
     if not no_gif:
         print(f"saved {controller} dashboard GIF: {gif_path}")
+    if save_mp4:
+        print(f"saved {controller} dashboard MP4: {mp4_path}")
 
     if no_show:
         for fig in figures:

@@ -13,7 +13,7 @@ from density_utils.density import Obstacle, p_norm_bump
 from density_utils.dynamics import unicycle_step
 from density_utils.utils.timing import TimedBlock
 
-from _plotting import plot_unicycle_results
+from _plotting import add_animation_save_args, animation_save_paths, plot_unicycle_results, wants_animation_output
 from config import CONFIG
 
 
@@ -132,7 +132,7 @@ def _unicycle_nominal_from_planar_ref(state, planar_ref, v_max, omega_max, k_hea
 
 def main(highlight_reactive_fov=False):
     parser = argparse.ArgumentParser()
-    parser.add_argument("--save-gif", action="store_true", help="Save animation as GIF.")
+    add_animation_save_args(parser)
     parser.add_argument("--no-plot", action="store_true", help="Run without opening plots.")
     parser.add_argument("--steps", type=int, default=None, help="Override maximum simulation steps.")
     parser.add_argument("--solver", choices=SOLVER_CHOICES, default="auto", help="Optimizer backend.")
@@ -166,11 +166,13 @@ def main(highlight_reactive_fov=False):
     fov_angle = np.deg2rad(float(sensing_cfg["fov_angle_deg"]))
     max_sensed = int(sensing_cfg["max_sensed"])
     linger_steps = int(sensing_cfg["linger_steps"])
-    animate = not args.no_plot
-    save_animation = args.save_gif
+    animate = not args.no_plot or wants_animation_output(args)
     animation_stride = int(animation_cfg["stride"])
     animation_fps = int(animation_cfg["fps"])
     animation_path = EXAMPLE_ROOT / animation_cfg["path"]
+    if highlight_reactive_fov:
+        animation_path = animation_path.with_name("unicycle_local_sensing_filter_reactive_fov.gif")
+    animation_paths = animation_save_paths(animation_path, save_gif=args.save_gif, save_mp4=args.save_mp4)
 
     agent_radius = float(scenario_cfg["agent_radius"])
     start = _as_array(scenario_cfg["start"])
@@ -309,7 +311,7 @@ def main(highlight_reactive_fov=False):
     print(summary)
     print(f"max_sensed={max(sensed_counts, default=0)} max_buffered={max(buffered_counts, default=0)}")
 
-    if not args.no_plot:
+    if not args.no_plot or wants_animation_output(args):
         plot_unicycle_results(
             traj=traj,
             controls=controls,
@@ -320,7 +322,7 @@ def main(highlight_reactive_fov=False):
             agent_radius=agent_radius,
             title="Unicycle - Local Sensing (Density filter)",
             animate=animate,
-            save_animation=save_animation,
+            save_animation=False,
             animation_path=animation_path,
             animation_stride=animation_stride,
             animation_fps=animation_fps,
@@ -330,6 +332,10 @@ def main(highlight_reactive_fov=False):
             cam_range=cam_range,
             fov_active=fov_active if highlight_reactive_fov else None,
             max_sensed=max_sensed,
+            animation_paths=animation_paths,
+            show_plot=not args.no_plot,
+            mp4_crf=args.mp4_crf,
+            mp4_preset=args.mp4_preset,
         )
 
 
