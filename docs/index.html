@@ -23,6 +23,18 @@
     </script>
   </head>
   <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="index.html">Safe Control Density</a>
+        <nav class="nav-links" aria-label="Site navigation">
+          <a href="single-integrator.html">Single Integrator</a>
+          <a href="unicycle.html">Unicycle</a>
+          <a href="racing.html">Racing</a>
+          <a href="../README.md">README</a>
+          <a href="https://github.com/sriram-2502/safe_control_density">GitHub</a>
+        </nav>
+      </div>
+    </header>
     <main>
       <section class="hero">
         <p class="eyebrow">Density-based safe control</p>
@@ -37,9 +49,9 @@
           <span>Racing density MPC</span>
         </div>
         <nav class="actions" aria-label="Project links">
-          <a href="../README.md">README</a>
-          <a href="../examples/unicycle/README.md">Unicycle docs</a>
-          <a href="../examples/single_integrator/README.md">Single-integrator docs</a>
+          <a href="unicycle.html">Unicycle results</a>
+          <a href="single-integrator.html">Single-integrator results</a>
+          <a href="racing.html">Racing results</a>
           <a href="https://github.com/sriram-2502/safe_control_density">GitHub</a>
         </nav>
       </section>
@@ -65,21 +77,21 @@
         <h2>Representative Rollouts</h2>
         <div class="video-grid three">
           <article class="video-card">
-            <video autoplay muted loop playsinline controls preload="metadata">
+            <video autoplay muted loop playsinline controls preload="auto">
               <source src="../examples/unicycle/animations/unicycle_static_density_mpc.mp4" type="video/mp4">
             </video>
             <h3>Unicycle Density MPC</h3>
             <p>Short-horizon density MPC steers a nonholonomic robot around a static obstacle.</p>
           </article>
           <article class="video-card">
-            <video autoplay muted loop playsinline controls preload="metadata">
+            <video autoplay muted loop playsinline controls preload="auto">
               <source src="../examples/unicycle/animations/unicycle_local_sensing_mpc_reactive_fov.mp4" type="video/mp4">
             </video>
             <h3>Local Sensing</h3>
             <p>The controller only activates obstacles that are sensed or held in short-term memory.</p>
           </article>
           <article class="video-card">
-            <video autoplay muted loop playsinline controls preload="metadata">
+            <video autoplay muted loop playsinline controls preload="auto">
               <source src="../examples/racing/animations/density_mpc_Ltrack_bump.mp4" type="video/mp4">
             </video>
             <h3>Racing Density MPC</h3>
@@ -113,7 +125,7 @@
         <h2>Controller Comparisons</h2>
         <div class="video-grid two">
           <article class="video-card wide">
-            <video muted loop playsinline controls preload="metadata">
+            <video autoplay muted loop playsinline controls preload="metadata">
               <source src="../examples/unicycle/static_single_obstacle/comparison_results/unicycle_static_density_controllers.mp4" type="video/mp4">
             </video>
             <h3>Density Feedback vs Filter vs MPC</h3>
@@ -123,7 +135,7 @@
             </p>
           </article>
           <article class="video-card wide">
-            <video muted loop playsinline controls preload="metadata">
+            <video autoplay muted loop playsinline controls preload="metadata">
               <source src="../examples/unicycle/static_single_obstacle/comparison_results/unicycle_static_safety_filters.mp4" type="video/mp4">
             </video>
             <h3>Density and CBF Safety Filters</h3>
@@ -179,7 +191,8 @@ python examples/unicycle/static_single_obstacle/compare_safety_filters.py --no-s
     <footer>
       <p>
         Safe Control Density ·
-        <a href="../README.md">Repository README</a> ·
+        <a href="unicycle.html">Unicycle results</a> ·
+        <a href="single-integrator.html">Single-integrator results</a> ·
         <a href="../LICENSE">License</a>
       </p>
     </footer>

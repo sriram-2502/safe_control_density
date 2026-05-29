@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Single Integrator Results · Safe Control Density</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: "$$", right: "$$", display: true },
+            { left: "\\(", right: "\\)", display: false }
+          ],
+          throwOnError: false
+        });
+      });
+    </script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="index.html">Safe Control Density</a>
+        <nav class="nav-links" aria-label="Site navigation">
+          <a href="index.html">Home</a>
+          <a href="unicycle.html">Unicycle</a>
+          <a href="racing.html">Racing</a>
+          <a href="../examples/single_integrator/README.md">README</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <p class="eyebrow">Example family</p>
+        <h1>Single Integrator</h1>
+        <p class="subtitle">
+          A planar point robot with directly commanded velocity. These examples
+          compare density feedback, one-step density filtering, and CLF-CBF
+          filtering.
+        </p>
+      </section>
+
+      <section class="section compact">
+        <h2>Model</h2>
+        <div class="math-card">
+          $$
+          p_{k+1}=p_k+\Delta t\,u_k,
+          \qquad
+          u_k=[u_x,u_y]^T
+          $$
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Density Function</h2>
+        <p class="lead">
+          For the single-integrator model, the density is defined directly over
+          planar position. The same obstacle bump construction is used, but
+          there is no heading term.
+        </p>
+        <div class="method-grid">
+          <article class="method-card">
+            <h3>Position Density</h3>
+            <p>The goal term grows as the point robot approaches \(p_g\).</p>
+            <div class="math-card">
+              $$
+              \rho(p)=\frac{\Phi(p)}{\|p-p_g\|^{2\alpha}},
+              \qquad
+              \Phi(p)=\prod_i b_i(p)
+              $$
+            </div>
+          </article>
+          <article class="method-card">
+            <h3>Circle Example</h3>
+            <p>For a circular obstacle centered at \(c\), use \(d(p)=\|p-c\|_2\).</p>
+            <div class="math-card">
+              $$
+              m(p)=\frac{\|p-c\|_2^2-r_1^2}{r_2^2-r_1^2}
+              $$
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Controller Formulations</h2>
+        <div class="method-grid">
+          <article class="method-card">
+            <h3>Density Feedback</h3>
+            <p>The direct controller follows the density gradient with optional saturation.</p>
+            <div class="math-card">
+              $$
+              u(p)=k_\rho\nabla\rho(p)
+              $$
+            </div>
+          </article>
+          <article class="method-card">
+            <h3>Density Filter</h3>
+            <p>The one-step filter modifies a nominal velocity only when needed for the density condition.</p>
+            <div class="math-card">
+              $$
+              \begin{aligned}
+              \min_{u,s}\;&\frac{1}{2}\|u-u_{\mathrm{nom}}\|_W^2+\frac{1}{2}w_s\|s\|^2\\
+              \mathrm{s.t.}\;&
+              \rho(p_{k+1})-\rho(p_k)+s\ge 0
+              \end{aligned}
+              $$
+            </div>
+          </article>
+          <article class="method-card">
+            <h3>CLF-CBF Filter</h3>
+            <p>The CBF baseline uses a hard geometric safety condition for the inflated obstacle.</p>
+            <div class="math-card">
+              $$
+              h(p_{k+1})\ge (1-\gamma)h(p_k),
+              \qquad
+              h(p)=\|p-c\|^2-R^2
+              $$
+            </div>
+          </article>
+          <article class="method-card">
+            <h3>Why No Density MPC Here?</h3>
+            <p>
+              The single-integrator dynamics directly control planar velocity,
+              so the one-step filter already has direct authority over the next
+              position.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Static Obstacle</h2>
+        <p class="lead">Direct feedback follows the density gradient, while the filter minimally modifies a nominal command to satisfy the density condition.</p>
+        <div class="gallery three">
+          <article>
+            <video autoplay muted loop playsinline controls preload="metadata">
+              <source src="../examples/single_integrator/animations/single_integrator_static.mp4" type="video/mp4">
+            </video>
+            <h3>Density Feedback</h3>
+          </article>
+          <article>
+            <video autoplay muted loop playsinline controls preload="metadata">
+              <source src="../examples/single_integrator/animations/single_integrator_static_filter.mp4" type="video/mp4">
+            </video>
+            <h3>Density Filter</h3>
+          </article>
+          <article>
+            <video autoplay muted loop playsinline controls preload="metadata">
+              <source src="../examples/single_integrator/animations/single_integrator_static_cbf_filter.mp4" type="video/mp4">
+            </video>
+            <h3>CLF-CBF Filter</h3>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Multi-Obstacle and Local Sensing</h2>
+        <div class="gallery three">
+          <article>
+            <video muted loop playsinline controls preload="metadata">
+              <source src="../examples/single_integrator/animations/single_integrator_multi.mp4" type="video/mp4">
+            </video>
+            <h3>Multi-Obstacle Feedback</h3>
+          </article>
+          <article>
+            <video muted loop playsinline controls preload="metadata">
+              <source src="../examples/single_integrator/animations/single_integrator_multi_filter.mp4" type="video/mp4">
+            </video>
+            <h3>Multi-Obstacle Filter</h3>
+          </article>
+          <article>
+            <video muted loop playsinline controls preload="metadata">
+              <source src="../examples/single_integrator/animations/single_integrator_multi_local_filter.mp4" type="video/mp4">
+            </video>
+            <h3>Local Sensing Filter</h3>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Comparison Dashboards</h2>
+        <div class="video-grid two">
+          <article class="video-card wide">
+            <video muted loop playsinline controls preload="metadata">
+              <source src="../examples/single_integrator/static_single_obstacle/comparison_results/single_integrator_static_safety_filters.mp4" type="video/mp4">
+            </video>
+            <h3>Safety Filters</h3>
+            <p>Density and CLF-CBF filters on the same single-obstacle scenario.</p>
+          </article>
+          <article class="video-card wide">
+            <video muted loop playsinline controls preload="metadata">
+              <source src="../examples/single_integrator/static_single_obstacle/comparison_results/single_integrator_clf_cbf_filter_gamma_sweep.mp4" type="video/mp4">
+            </video>
+            <h3>CLF-CBF Gamma Sweep</h3>
+            <p>Effect of the discrete CBF rate on behavior near the obstacle.</p>
+          </article>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
