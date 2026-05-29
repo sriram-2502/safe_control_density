@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Safe Control Density: density-based safety filters and MPC examples for obstacle avoidance.">
+    <title>Safe Control Density</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: "$$", right: "$$", display: true },
+            { left: "\\(", right: "\\)", display: false }
+          ],
+          throwOnError: false
+        });
+      });
+    </script>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <p class="eyebrow">Density-based safe control</p>
+        <h1>Safe Control Density</h1>
+        <p class="subtitle">
+          Lightweight Python examples for density feedback, safety filters, and
+          short-horizon MPC in obstacle-rich navigation problems.
+        </p>
+        <div class="authors">
+          <span>Single-integrator navigation</span>
+          <span>Unicycle safety filters</span>
+          <span>Racing density MPC</span>
+        </div>
+        <nav class="actions" aria-label="Project links">
+          <a href="../README.md">README</a>
+          <a href="../examples/unicycle/README.md">Unicycle docs</a>
+          <a href="../examples/single_integrator/README.md">Single-integrator docs</a>
+          <a href="https://github.com/sriram-2502/safe_control_density">GitHub</a>
+        </nav>
+      </section>
+
+      <section class="section">
+        <h2>Overview</h2>
+        <p>
+          These examples build a smooth density field that is high near the goal
+          and suppressed near obstacles. Controllers then either follow the
+          density gradient directly or enforce a one-step or finite-horizon
+          density transport condition.
+        </p>
+        <div class="math-card">
+          $$
+          \rho(z)=\frac{\Phi(p)}{V(z)^\alpha},
+          \qquad
+          \Phi(p)=\prod_i b_i(p)
+          $$
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Representative Rollouts</h2>
+        <div class="video-grid three">
+          <article class="video-card">
+            <video autoplay muted loop playsinline controls preload="metadata">
+              <source src="../examples/unicycle/animations/unicycle_static_density_mpc.mp4" type="video/mp4">
+            </video>
+            <h3>Unicycle Density MPC</h3>
+            <p>Short-horizon density MPC steers a nonholonomic robot around a static obstacle.</p>
+          </article>
+          <article class="video-card">
+            <video autoplay muted loop playsinline controls preload="metadata">
+              <source src="../examples/unicycle/animations/unicycle_local_sensing_mpc_reactive_fov.mp4" type="video/mp4">
+            </video>
+            <h3>Local Sensing</h3>
+            <p>The controller only activates obstacles that are sensed or held in short-term memory.</p>
+          </article>
+          <article class="video-card">
+            <video autoplay muted loop playsinline controls preload="metadata">
+              <source src="../examples/racing/animations/density_mpc_Ltrack_bump.mp4" type="video/mp4">
+            </video>
+            <h3>Racing Density MPC</h3>
+            <p>Density MPC-CDF tracks a circuit while avoiding moving obstacle cars.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section split">
+        <div>
+          <h2>Density Safety Filter</h2>
+          <p>
+            The one-step density filter minimally modifies a nominal command
+            \(u_{\mathrm{nom}}\) so the next state satisfies a discrete density
+            condition.
+          </p>
+        </div>
+        <div class="math-card">
+          $$
+          \begin{aligned}
+          \min_{u,s}\quad
+          &\frac{1}{2}\|u-u_{\mathrm{nom}}\|_W^2+\frac{1}{2}w_s\|s\|^2 \\
+          \mathrm{s.t.}\quad
+          &\rho(z_{k+1})-\rho(z_k)+\Delta t\,\mathrm{div}(F_d)\rho(z_k)+s\ge 0
+          \end{aligned}
+          $$
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Controller Comparisons</h2>
+        <div class="video-grid two">
+          <article class="video-card wide">
+            <video muted loop playsinline controls preload="metadata">
+              <source src="../examples/unicycle/static_single_obstacle/comparison_results/unicycle_static_density_controllers.mp4" type="video/mp4">
+            </video>
+            <h3>Density Feedback vs Filter vs MPC</h3>
+            <p>
+              Direct feedback follows the density field, the filter solves a
+              one-step safety problem, and MPC reasons over a finite horizon.
+            </p>
+          </article>
+          <article class="video-card wide">
+            <video muted loop playsinline controls preload="metadata">
+              <source src="../examples/unicycle/static_single_obstacle/comparison_results/unicycle_static_safety_filters.mp4" type="video/mp4">
+            </video>
+            <h3>Density and CBF Safety Filters</h3>
+            <p>
+              One-step CLF-CBF stays safe but can park at the obstacle; MPC-style
+              controllers recover steering through the prediction horizon.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Scenario Gallery</h2>
+        <div class="gallery">
+          <article>
+            <video muted loop playsinline controls preload="metadata">
+              <source src="../examples/single_integrator/animations/single_integrator_static_filter.mp4" type="video/mp4">
+            </video>
+            <h3>Single Integrator Filter</h3>
+          </article>
+          <article>
+            <video muted loop playsinline controls preload="metadata">
+              <source src="../examples/single_integrator/animations/single_integrator_multi_local_filter.mp4" type="video/mp4">
+            </video>
+            <h3>Single Integrator Local Sensing</h3>
+          </article>
+          <article>
+            <video muted loop playsinline controls preload="metadata">
+              <source src="../examples/unicycle/animations/unicycle_multi.mp4" type="video/mp4">
+            </video>
+            <h3>Unicycle Multi-Obstacle</h3>
+          </article>
+          <article>
+            <video muted loop playsinline controls preload="metadata">
+              <source src="../examples/unicycle/animations/unicycle_static_multi_filter.mp4" type="video/mp4">
+            </video>
+            <h3>Unicycle Density Filter</h3>
+          </article>
+        </div>
+      </section>
+
+      <section class="section split">
+        <div>
+          <h2>Reproduce</h2>
+          <p>Install the package in editable mode, then run any example script from the repository root.</p>
+        </div>
+        <pre><code>python -m pip install -e .
+python examples/unicycle/static_single_obstacle/density_mpc.py --save-mp4 --horizon 7 --no-plot
+python examples/unicycle/static_single_obstacle/compare_safety_filters.py --no-show</code></pre>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        Safe Control Density ·
+        <a href="../README.md">Repository README</a> ·
+        <a href="../LICENSE">License</a>
+      </p>
+    </footer>
+  </body>
+</html>
