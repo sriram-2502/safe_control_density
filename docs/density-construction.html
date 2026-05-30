@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Density Construction · Safe Navigation using Density Functions</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"></script>
+    <script defer src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: "$$", right: "$$", display: true },
+            { left: "\\(", right: "\\)", display: false }
+          ],
+          throwOnError: false
+        });
+      });
+    </script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="index.html">Safe Control Density</a>
+        <nav class="nav-links" aria-label="Site navigation">
+          <a href="index.html">Home</a>
+          <a href="density-construction.html">Density Construction</a>
+          <a href="single-integrator.html">Holonomic</a>
+          <a href="unicycle.html">Non-Holonomic</a>
+          <a href="autonomous-racing.html">Racing</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <h1>Density Function Construction</h1>
+        <p class="subtitle">
+          A concise summary of the analytical construction used in the examples.
+        </p>
+      </section>
+
+      <section class="section">
+        <h2>Interactive Density Function</h2>
+        <p class="lead">
+          Tune the obstacle geometry and target exponent, then rotate the 3D
+          surface to see how the density vanishes around unsafe states and
+          concentrates near the target.
+        </p>
+        <div class="interactive-panel">
+          <div class="control-panel" aria-label="Density plot controls">
+            <label>
+              Obstacle shape
+              <select id="density-shape">
+                <option value="circle">Circle</option>
+                <option value="diamond">Diamond</option>
+                <option value="square">Rounded square</option>
+                <option value="ellipse">Ellipse</option>
+              </select>
+            </label>
+            <label>
+              Safety radius <span id="density-r1-label">0.55</span>
+              <input id="density-r1" type="range" min="0.25" max="0.95" step="0.05" value="0.55">
+            </label>
+            <label>
+              Sensing radius <span id="density-r2-label">1.25</span>
+              <input id="density-r2" type="range" min="0.70" max="1.90" step="0.05" value="1.25">
+            </label>
+            <label>
+              Goal exponent alpha <span id="density-alpha-label">0.40</span>
+              <input id="density-alpha" type="range" min="0.15" max="1.20" step="0.05" value="0.40">
+            </label>
+          </div>
+          <div id="density-plot" class="density-plot" role="img" aria-label="Interactive 3D density surface"></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="construction-box">
+          <h3>System and Sets</h3>
+          <p>
+            Consider the control-affine system
+            \(\dot{x}=f(x)+g(x)u\). Let \(\mathcal{X}\) be the state space,
+            \(\mathcal{X}_u\) the unsafe set, and \(\mathcal{X}_T\) the target
+            set. The goal is to construct a density function
+            \(\rho:\mathcal{X}\setminus\mathcal{X}_u\to\mathbb{R}_{>0}\) that
+            guides almost all initial conditions to \(\mathcal{X}_T\) while
+            avoiding \(\mathcal{X}_u\).
+          </p>
+          <div class="math-card">
+            $$
+            \dot{x}=f(x)+g(x)u,
+            \qquad
+            x\in\mathcal{X}\setminus\mathcal{X}_u.
+            $$
+          </div>
+          <div style="height: 24px;"></div>
+
+          <h3>Obstacle and Sensing Regions</h3>
+          <p>
+            Represent obstacle \(i\) by a smooth function
+            \(h_i:\mathcal{X}\to\mathbb{R}\), with the unsafe set described by
+            a sublevel set. A larger set \(\mathcal{X}_{s,i}\) defines the
+            region where the density transitions around the obstacle.
+          </p>
+          <div class="math-card">
+            $$
+            \mathcal{X}_{u,i}=\{x\in\mathcal{X}:h_i(x)\le 0\},
+            \qquad
+            \mathcal{X}_{s,i}=\{x\in\mathcal{X}:s_i(x)\le 0\}\setminus\mathcal{X}_{u,i}.
+            $$
+          </div>
+          <p>
+            For a circular obstacle, \(h_i(x)=\|x-c_i\|^2-r_{u,i}^2\) defines
+            the unsafe set and \(s_i(x)=\|x-c_i\|^2-r_{s,i}^2\) defines the
+            larger sensing boundary, with \(r_{s,i}>r_{u,i}\).
+          </p>
+          <div style="height: 24px;"></div>
+          <h3>Encoding the Obstacles</h3>
+          <p>
+            The inverse bump gives a smooth transition from zero to one. The
+            obstacle factor \(\phi_i\) is zero on the unsafe set and smoothly
+            transitions to one outside the sensing region.
+          </p>
+          <div class="math-card">
+            $$
+            b(\tau)=
+            \begin{cases}
+            \exp(-1/\tau), & \tau>0,\\
+            0, & \tau\le 0,
+            \end{cases}
+            \qquad
+            \bar{b}(\tau)=\frac{b(\tau)}{b(\tau)+b(1-\tau)}.
+            $$
+            $$
+            \phi_i(x)=\bar{b}\!\left(\frac{h_i(x)}{s_i(x)}\right),
+            \qquad
+            \Phi(x)=\prod_{i=1}^{M}\phi_i(x).
+            $$
+          </div>
+          <div style="height: 24px;"></div>
+          <h3>Encodring the Target</h3>
+          <p>
+            Choose a positive target function \(V_T(x)\) that vanishes on the
+            target set and is positive away from it. The density combines the
+            obstacle product with the target factor.
+          </p>
+          <div class="math-card">
+            $$
+            V_T(x)>0 \quad \text{for } x\notin\mathcal{X}_T,
+            \qquad
+            V_T(x)=0 \quad \text{on } \mathcal{X}_T.
+            $$
+          </div>
+          <div style="height: 24px;"></div>
+          <h3>Overall Density function</h3>
+          <div class="math-card">
+            $$
+            \rho(x)=\frac{\Phi(x)}{V_T(x)^\alpha},
+            \qquad
+            \alpha>0.
+            $$
+          </div>
+          <div style="height: 24px;"></div>
+          <h3>Density-Based Safety Condition</h3>
+          <p>
+            The density is used to synthesize safe feedback or to constrain a
+            filter/MPC. For the continuous-time control-affine system, the
+            density-based safety condition is written as
+          </p>
+          <div class="math-card">
+            $$
+            \nabla\cdot\Big(f(x)\rho(x)+g(x)\rho(x)u(x)\Big)\ge 0.
+            $$
+          </div>
+        </div>
+      </section>
+    </main>
+    <script src="assets/density-demo.js"></script>
+  </body>
+</html>

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Unicycle Results · Safe Control Density</title>
+    <title>Non-Holonomic Results · Safe Control Density</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
     <link rel="stylesheet" href="style.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
@@ -26,19 +26,19 @@
         <a class="brand" href="index.html">Safe Control Density</a>
         <nav class="nav-links" aria-label="Site navigation">
           <a href="index.html">Home</a>
-          <a href="single-integrator.html">Single Integrator</a>
-          <a href="racing.html">Racing</a>
-          <a href="../examples/unicycle/README.md">README</a>
+          <a href="density-construction.html">Density Construction</a>
+          <a href="single-integrator.html">Holonomic</a>
+          <a href="unicycle.html">Non-Holonomic</a>
+          <a href="autonomous-racing.html">Racing</a>
         </nav>
       </div>
     </header>
 
     <main>
       <section class="hero">
-        <p class="eyebrow">Example family</p>
-        <h1>Unicycle Safety Filters</h1>
+        <h1>Non-Holonomic System</h1>
         <p class="subtitle">
-          Nonholonomic navigation with forward speed and yaw-rate controls. The
+          Nonholonomic navigation using unicycle model with forward speed and yaw-rate controls. The
           examples compare density feedback, density filters, density MPC, and
           CBF-style safety filters.
         </p>
@@ -58,229 +58,206 @@
       </section>
 
       <section class="section">
-        <h2>Density Construction</h2>
+        <h2>Density Feedback Controller</h2>
         <p class="lead">
-          The density combines an attractive goal term with smooth obstacle
-          bumps. The obstacle product \(\Phi(p)\) goes to zero near unsafe
-          regions, while the denominator makes density grow near the goal.
+          The planar density gradient gives a desired direction in \(x,y\).
+          The unicycle tracks that direction by choosing a forward speed and
+          yaw-rate command that align the heading with the density-gradient
+          direction.
         </p>
-        <div class="method-grid">
-          <article class="method-card">
-            <h3>Pose Density</h3>
-            <p>The unicycle examples use position and heading error in the goal term.</p>
-            <div class="math-card">
-              $$
-              \rho(z)=\frac{\Phi(p)}{V(z)^\alpha},
-              \quad
-              V(z)=(x-x_g)^2+(y-y_g)^2+w_\theta\,\mathrm{wrap}(\theta-\theta_g)^2
-              $$
-            </div>
-          </article>
-          <article class="method-card">
-            <h3>Obstacle Product</h3>
-            <p>Each obstacle contributes one smooth bump, and multiple obstacles multiply together.</p>
-            <div class="math-card">
-              $$
-              \Phi(p)=\prod_{i=1}^{M} b_i(p)
-              $$
-            </div>
-          </article>
+        <div class="math-card">
+          $$
+          \begin{aligned}
+          u_\rho(x_k,y_k) &= k_\rho\nabla\rho(x_k,y_k),\\
+          v_k &= \operatorname{sat}_{[0,v_{\max}]}\|u_\rho\|,\\
+          \theta_d &= \operatorname{atan2}(u_{\rho,y},u_{\rho,x}),\\
+          \omega_k &= \operatorname{sat}_{[-\omega_{\max},\omega_{\max}]}
+          \left(k_\theta\operatorname{wrap}(\theta_d-\theta_k)\right).
+          \end{aligned}
+          $$
         </div>
-      </section>
-
-      <section class="section">
-        <h2>Circle Obstacle Example</h2>
-        <p class="lead">
-          For a circular obstacle with center \(c\), inner radius \(r_1\), and
-          outer density radius \(r_2\), the distance is \(d(p)=\|p-c\|_2\).
-        </p>
-        <div class="method-grid">
-          <article class="method-card">
-            <h3>Transition Coordinate</h3>
-            <p>The value \(m(p)\) runs from 0 at the safety radius to 1 at the outer radius.</p>
-            <div class="math-card">
-              $$
-              m(p)=\frac{\|p-c\|_2^2-r_1^2}{r_2^2-r_1^2}
-              $$
-            </div>
-          </article>
-          <article class="method-card">
-            <h3>Smooth Bump</h3>
-            <p>The bump is zero inside the safety radius, one outside the density radius, and smooth in between.</p>
-            <div class="math-card">
-              $$
-              b(p)=
-              \frac{\exp(-1/m(p))}
-              {\exp(-1/m(p))+\exp(-1/(1-m(p)))}
-              $$
-            </div>
-          </article>
-        </div>
-        <p class="note">
-          In the code, the agent radius inflates \(r_1\) and \(r_2\) before the
-          controller evaluates these functions.
-        </p>
-      </section>
-
-      <section class="section">
-        <h2>Controllers</h2>
-        <div class="method-grid">
-          <article class="method-card">
-            <h3>Density Feedback</h3>
-            <p>The planar density gradient gives a desired direction, which is converted to forward speed and heading tracking.</p>
-            <div class="math-card">
-              $$
-              u_\rho(p)=k_\rho\nabla\rho(p),
-              \quad
-              v=\|u_\rho\|,
-              \quad
-              \theta_d=\mathrm{atan2}(u_{\rho,y},u_{\rho,x})
-              $$
-            </div>
-          </article>
-          <article class="method-card">
-            <h3>One-Step Density Filter</h3>
-            <p>The filter stays close to \(u_{\mathrm{nom}}\) while enforcing the next-step density condition.</p>
-            <div class="math-card">
-              $$
-              \begin{aligned}
-              \min_{u,s}\;&\frac{1}{2}\|u-u_{\mathrm{nom}}\|_W^2+\frac{1}{2}w_s\|s\|^2\\
-              \mathrm{s.t.}\;&
-              \rho(z_{k+1})-\rho(z_k)+\Delta t\,\mathrm{div}(F_d)\rho(z_k)+s\ge 0
-              \end{aligned}
-              $$
-            </div>
-          </article>
-          <article class="method-card">
-            <h3>Density MPC</h3>
-            <p>The MPC applies the density transport condition over a horizon with controls \(u_0,\ldots,u_{N-1}\).</p>
-            <div class="math-card">
-              $$
-              \rho(z_{j+1})-\rho(z_j)+\Delta t\,\mathrm{div}(F_d)\rho(z_j)-\Delta t\,C_j\rho(z_j)\ge 0
-              $$
-            </div>
-          </article>
-          <article class="method-card">
-            <h3>CBF Baselines</h3>
-            <p>The comparison scripts also include a discrete CLF-CBF filter and a short-horizon CBF MPC.</p>
-            <div class="math-card">
-              $$
-              h(z_{k+1})\ge (1-\gamma)h(z_k)
-              $$
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <section class="section">
-        <h2>Static Single Obstacle</h2>
-        <div class="gallery three">
-          <article>
+        <div class="video-grid three crop-videos multi-obstacle-videos">
+          <article class="video-card">
+            <h3>Single Obstacle</h3>
             <video autoplay muted loop playsinline controls preload="metadata">
               <source src="assets/videos/unicycle_static.mp4" type="video/mp4">
             </video>
-            <h3>Density Feedback</h3>
           </article>
-          <article>
+          <article class="video-card">
+            <h3>Multiple Obstacles</h3>
+            <video autoplay muted loop playsinline controls preload="metadata">
+              <source src="assets/videos/unicycle_multi.mp4" type="video/mp4">
+            </video>
+          </article>
+          <article class="video-card">
+            <h3>Local Sensing</h3>
+            <video autoplay muted loop playsinline controls preload="metadata">
+              <source src="assets/videos/unicycle_multi_local.mp4" type="video/mp4">
+            </video>
+          </article>
+        </div>
+
+        <div style="height: 36px;"></div>
+        <h3 class="centered-heading">Density-Feedback Sensing-Radius Sweep</h3>
+        <p class="lead">
+          Increasing the sensing radius makes the density-gradient direction
+          react earlier to the obstacle, giving a more conservative path.
+        </p>
+        <article class="video-card wide">
+          <video autoplay muted loop playsinline controls preload="metadata">
+            <source src="assets/videos/unicycle_density_feedback_sensing_radius_sweep.mp4" type="video/mp4">
+          </video>
+        </article>
+      </section>
+
+      <section class="section">
+        <h2>Density Safety Filter</h2>
+        <p class="lead">
+          The one-step density filter stays close to a nominal unicycle command
+          \(u_{\mathrm{nom}}=[v_{\mathrm{nom}},\omega_{\mathrm{nom}}]^T\)
+          while enforcing the next-step density condition.
+        </p>
+        <div class="math-card">
+          $$
+          \begin{aligned}
+          \min_{u_k,s}\quad
+          &\frac{1}{2}\|u_k-u_{\mathrm{nom}}\|_W^2
+          +\frac{1}{2}w_s s^2\\
+          \mathrm{s.t.}\quad
+          &z_{k+1}=F_d(z_k,u_k),\\
+          &\rho(z_{k+1})-\rho(z_k)
+          +\Delta t\,\nabla\!\cdot(F_d\rho)(z_k,u_k)+s\ge0,\\
+          &u_k\in\mathcal U,\qquad s\ge0.
+          \end{aligned}
+          $$
+        </div>
+        <div class="video-grid three crop-videos multi-obstacle-videos">
+          <article class="video-card">
+            <h3>Single Obstacle</h3>
             <video autoplay muted loop playsinline controls preload="metadata">
               <source src="assets/videos/unicycle_static_filter.mp4" type="video/mp4">
             </video>
-            <h3>Density Filter</h3>
           </article>
-          <article>
+          <article class="video-card">
+            <h3>Multiple Obstacles</h3>
+            <video autoplay muted loop playsinline controls preload="metadata">
+              <source src="assets/videos/unicycle_static_multi_filter.mp4" type="video/mp4">
+            </video>
+          </article>
+          <article class="video-card">
+            <h3>Local Sensing</h3>
+            <video autoplay muted loop playsinline controls preload="metadata">
+              <source src="assets/videos/unicycle_local_sensing_filter_reactive_fov.mp4" type="video/mp4">
+            </video>
+          </article>
+        </div>
+
+        <div style="height: 36px;"></div>
+        <h3 class="centered-heading">Density-Filter Sensing-Radius Sweep</h3>
+        <p class="lead">
+          The filter becomes more conservative as the sensing radius grows,
+          because obstacle constraints shape the density condition earlier.
+        </p>
+        <article class="video-card wide">
+          <video autoplay muted loop playsinline controls preload="metadata">
+            <source src="assets/videos/unicycle_density_filter_sensing_radius_sweep.mp4" type="video/mp4">
+          </video>
+        </article>
+      </section>
+
+      <section class="section">
+        <h2>Density MPC</h2>
+        <p class="lead">
+          Density MPC enforces the density transport condition along a predicted
+          horizon. This lets the controller choose steering and speed commands
+          that account for future unicycle motion.
+        </p>
+        <div class="math-card">
+          $$
+          \begin{aligned}
+          \min_{z,u,c}\quad
+          &\sum_{j=0}^{N-1}\ell(z_j,u_j,c_j)+\ell_f(z_N)\\
+          \mathrm{s.t.}\quad
+          &z_0=z_k,\qquad z_{j+1}=F_d(z_j,u_j),\\
+          &\rho(z_{j+1})-\rho(z_j)
+          +\Delta t\,\nabla\!\cdot(F_d\rho)(z_j,u_j)
+          -\Delta t\,c_j\rho(z_j)\ge0,\\
+          &u_j\in\mathcal U,\qquad c_j\ge0.
+          \end{aligned}
+          $$
+        </div>
+        <div class="video-grid three crop-videos multi-obstacle-videos">
+          <article class="video-card">
+            <h3>Single Obstacle</h3>
             <video autoplay muted loop playsinline controls preload="metadata">
               <source src="assets/videos/unicycle_static_density_mpc.mp4" type="video/mp4">
             </video>
-            <h3>Density MPC</h3>
           </article>
-        </div>
-      </section>
-
-      <section class="section">
-        <h2>Static Multi-Obstacle</h2>
-        <div class="gallery three">
-          <article>
-            <video muted loop playsinline controls preload="metadata">
-              <source src="assets/videos/unicycle_multi.mp4" type="video/mp4">
-            </video>
-            <h3>Density Feedback</h3>
-          </article>
-          <article>
-            <video muted loop playsinline controls preload="metadata">
-              <source src="assets/videos/unicycle_static_multi_filter.mp4" type="video/mp4">
-            </video>
-            <h3>Density Filter</h3>
-          </article>
-          <article>
-            <video muted loop playsinline controls preload="metadata">
+          <article class="video-card">
+            <h3>Multiple Obstacles</h3>
+            <video autoplay muted loop playsinline controls preload="metadata">
               <source src="assets/videos/unicycle_static_multi_mpc.mp4" type="video/mp4">
             </video>
-            <h3>Density MPC</h3>
           </article>
-        </div>
-      </section>
-
-      <section class="section">
-        <h2>Local Sensing</h2>
-        <p class="lead">Only sensed or remembered obstacles are active in the controller.</p>
-        <div class="gallery three">
-          <article>
-            <video muted loop playsinline controls preload="metadata">
-              <source src="assets/videos/unicycle_multi_local.mp4" type="video/mp4">
-            </video>
-            <h3>Density Feedback</h3>
-          </article>
-          <article>
-            <video muted loop playsinline controls preload="metadata">
-              <source src="assets/videos/unicycle_local_sensing_filter_reactive_fov.mp4" type="video/mp4">
-            </video>
-            <h3>Reactive FOV Filter</h3>
-          </article>
-          <article>
-            <video muted loop playsinline controls preload="metadata">
+          <article class="video-card">
+            <h3>Local Sensing</h3>
+            <video autoplay muted loop playsinline controls preload="metadata">
               <source src="assets/videos/unicycle_local_sensing_mpc_reactive_fov.mp4" type="video/mp4">
             </video>
-            <h3>Reactive FOV MPC</h3>
           </article>
         </div>
       </section>
 
-      <section class="section">
-        <h2>Comparison Dashboards</h2>
-        <div class="video-grid two">
+      <section class="section" id="cbf-baselines">
+        <h2>Comparison with CLF-CBF filter</h2>
+        <p class="lead">
+          For the unicycle model, a vanilla one-step CBF filter encodes obstacle
+          safety only through planar position. Let \(p_k=[x_k,y_k]^T\) be the
+          robot position at time step \(k\), let \(p_o\) be the obstacle center,
+          and let \(R\) be the inflated obstacle radius. The barrier does not
+          depend on the heading state, so the one-step CBF condition can reduce
+          forward speed near the unsafe set but does not directly constrain or
+          reward the yaw-rate input needed to steer around the obstacle and
+          toward the goal.
+        </p>
+        <div class="math-card">
+          $$
+          \begin{aligned}
+          p_k &= [x_k,y_k]^T,\\[2pt]
+          h(z_k) &= \|p_k-p_o\|^2-R^2,\\[6pt]
+          p_{k+1}
+          &= p_k+\Delta t\,v_k
+          \begin{bmatrix}\cos\theta_k\\ \sin\theta_k\end{bmatrix},\\
+          \theta_{k+1}
+          &= \theta_k+\Delta t\,\omega_k,\\[6pt]
+          h(z_{k+1}) &\ge (1-\gamma)h(z_k).
+          \end{aligned}
+          $$
+          $$
+          \begin{aligned}
+          \left\|
+          p_k+\Delta t\,v_k
+          \begin{bmatrix}\cos\theta_k\\ \sin\theta_k\end{bmatrix}
+          -p_o
+          \right\|^2 - R^2
+          &\ge
+          (1-\gamma)\left(\|p_k-p_o\|^2-R^2\right).
+          \end{aligned}
+          $$
+        </div>
+        <p class="lead">
+          After substitution, the one-step CBF inequality contains \(v_k\), but
+          not \(\omega_k\). Steering changes \(\theta_{k+1}\), which affects
+          position only in later steps. Therefore the CLF-CBF filter can remain
+          safe by slowing or stopping, but the CBF part does not have direct
+          authority to steer the robot away in the current step.
+        </p>
+        <div class="video-stack">
           <article class="video-card wide">
-            <video muted loop playsinline controls preload="metadata">
-              <source src="assets/videos/unicycle_static_density_controllers.mp4" type="video/mp4">
-            </video>
-            <h3>Density Controllers</h3>
-            <p>Density feedback, one-step density filtering, and density MPC.</p>
-          </article>
-          <article class="video-card wide">
-            <video muted loop playsinline controls preload="metadata">
+            <h3>CLF-CBF Comparison</h3>
+            <video autoplay muted loop playsinline controls preload="metadata">
               <source src="assets/videos/unicycle_static_safety_filters.mp4" type="video/mp4">
             </video>
-            <h3>Safety Filters</h3>
-            <p>Density filters compared with one-step CLF-CBF and CBF MPC.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="section">
-        <h2>Sensing-Radius Sweeps</h2>
-        <div class="video-grid two">
-          <article class="video-card wide">
-            <video muted loop playsinline controls preload="metadata">
-              <source src="assets/videos/unicycle_density_feedback_sensing_radius_sweep.mp4" type="video/mp4">
-            </video>
-            <h3>Density Feedback Sweep</h3>
-            <p>Varying the outer density radius changes how early the controller reacts.</p>
-          </article>
-          <article class="video-card wide">
-            <video muted loop playsinline controls preload="metadata">
-              <source src="assets/videos/unicycle_density_filter_sensing_radius_sweep.mp4" type="video/mp4">
-            </video>
-            <h3>Density Filter Sweep</h3>
-            <p>The one-step filter becomes more conservative as the sensing radius grows.</p>
           </article>
         </div>
       </section>

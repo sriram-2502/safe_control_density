@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Racing Results · Safe Control Density</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: "$$", right: "$$", display: true },
+            { left: "\\(", right: "\\)", display: false }
+          ],
+          throwOnError: false
+        });
+      });
+    </script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="index.html">Safe Control Density</a>
+        <nav class="nav-links" aria-label="Site navigation">
+          <a href="index.html">Home</a>
+          <a href="density-construction.html">Density Construction</a>
+          <a href="single-integrator.html">Holonomic</a>
+          <a href="unicycle.html">Non-Holonomic</a>
+          <a href="autonomous-racing.html">Racing</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <h1>Density MPC for autonomous racing</h1>
+        <p class="subtitle">
+          A track-coordinate MPC example where the ego car follows an L-shaped circuit
+          while avoiding other cars (treated as moving obstacles) with density constraints.
+        </p>
+      </section>
+
+      <section class="section">
+        <h2>Track Coordinates and Dynamics</h2>
+        <p class="lead">
+          The racing controller predicts in curvilinear track coordinates. The
+          state keeps the vehicle dynamics, the heading error relative to the
+          track tangent, the progress along the centerline, and the lateral
+          error from the centerline.
+        </p>
+        <div class="math-card">
+          $$
+          x_k=
+          \begin{bmatrix}
+          v_{x,k} & v_{y,k} & \omega_{z,k} & e_{\psi,k} & s_k & e_{y,k}
+          \end{bmatrix}^{T},
+          \qquad
+          u_k=
+          \begin{bmatrix}
+          \delta_k & a_k
+          \end{bmatrix}^{T}.
+          $$
+          $$
+          \delta_k\in[-\delta_{\max},\delta_{\max}],
+          \qquad
+          a_k\in[-a_{\max},a_{\max}].
+          $$
+        </div>
+        <p class="lead">
+          Here \(v_x\) and \(v_y\) are body-frame velocities, \(\omega_z\) is
+          yaw rate, \(e_\psi\) is the heading error, \(s\) is track progress,
+          and \(e_y\) is lateral error. The page visualizes the predicted
+          states in global coordinates, but the MPC optimizes the track state
+          above.
+        </p>
+
+        <h3 class="centered-heading">Nonlinear Bicycle Model</h3>
+        <p class="lead">
+          The code keeps a nonlinear dynamic bicycle model available. Let
+          \(\kappa(s)\) denote the track curvature, and define the front and
+          rear slip angles using a small lower bound on \(v_x\) in the
+          implementation to avoid division by zero.
+        </p>
+        <div class="math-card">
+          $$
+          \begin{aligned}
+          \alpha_f
+          &=\delta-\tan^{-1}\!\left(\frac{v_y+l_f\omega_z}{v_x}\right),\\
+          \alpha_r
+          &=-\tan^{-1}\!\left(\frac{v_y-l_r\omega_z}{v_x}\right),\\
+          F_{yf}
+          &=2D_f\sin\!\left(C_f\tan^{-1}(B_f\alpha_f)\right),\\
+          F_{yr}
+          &=2D_r\sin\!\left(C_r\tan^{-1}(B_r\alpha_r)\right).
+          \end{aligned}
+          $$
+          $$
+          \begin{aligned}
+          \dot v_x
+          &=a-\frac{F_{yf}\sin\delta}{m}+\omega_z v_y,\\
+          \dot v_y
+          &=\frac{F_{yf}\cos\delta+F_{yr}}{m}-\omega_z v_x,\\
+          \dot\omega_z
+          &=\frac{l_fF_{yf}\cos\delta-l_rF_{yr}}{I_z},\\
+          \dot e_\psi
+          &=\omega_z-
+          \frac{(v_x\cos e_\psi-v_y\sin e_\psi)\kappa(s)}
+          {1-\kappa(s)e_y},\\
+          \dot s
+          &=\frac{v_x\cos e_\psi-v_y\sin e_\psi}
+          {1-\kappa(s)e_y},\\
+          \dot e_y
+          &=v_x\sin e_\psi+v_y\cos e_\psi.
+          \end{aligned}
+          $$
+        </div>
+
+        <h3 class="centered-heading">Linearized Prediction Model</h3>
+        <p class="lead">
+          The default racing MPC uses the discrete-time linearized model copied
+          into the example configuration. This keeps the optimizer lightweight
+          while preserving the same state and control notation.
+        </p>
+        <div class="math-card">
+          $$
+          x_{k+1}=Ax_k+Bu_k,
+          \qquad
+          F_d(x_k,u_k)=Ax_k+Bu_k.
+          $$
+          $$
+          A\in\mathbb{R}^{6\times6},
+          \qquad
+          B\in\mathbb{R}^{6\times2},
+          \qquad
+          u_k=
+          \begin{bmatrix}\delta_k&a_k\end{bmatrix}^{T}.
+          $$
+        </div>
+        <p class="lead">
+          Conceptually, this model comes from linearizing the nonlinear bicycle
+          dynamics about a nominal racing operating point
+          \((\bar x,\bar u)\), then discretizing with the MPC sample time
+          \(\Delta t\). If \(f_c(x,u)\) denotes the continuous-time nonlinear
+          curvilinear dynamics above, the local perturbation model is
+          \(\dot{\tilde x}=A_c\tilde x+B_c\tilde u\), where
+          \(\tilde x=x-\bar x\) and \(\tilde u=u-\bar u\).
+        </p>
+        <p class="lead">
+          In this example, the nominal point corresponds to driving along the
+          track centerline at the target speed with no lateral motion, no yaw
+          rate, no heading error, no steering, and no acceleration.
+        </p>
+        <div class="math-card">
+          $$
+          \bar x=
+          \begin{bmatrix}
+          v_{\mathrm{ref}} & 0 & 0 & 0 & \bar s & 0
+          \end{bmatrix}^{T},
+          \qquad
+          \bar u=
+          \begin{bmatrix}
+          0 & 0
+          \end{bmatrix}^{T}.
+          $$
+          $$
+          v_{\mathrm{ref}}=0.8\ \mathrm{m/s},
+          \qquad
+          \bar s \text{ is the nominal progress point on the track centerline.}
+          $$
+          $$
+          A_c=
+          \left.\frac{\partial f_c}{\partial x}\right|_{(\bar x,\bar u)},
+          \qquad
+          B_c=
+          \left.\frac{\partial f_c}{\partial u}\right|_{(\bar x,\bar u)}.
+          $$
+          $$
+          \tilde x_{k+1}
+          \approx
+          \left(I+\Delta t\,A_c\right)\tilde x_k
+          +\Delta t\,B_c\tilde u_k.
+          $$
+          $$
+          A_d=I+\Delta t\,A_c,
+          \qquad
+          B_d=\Delta t\,B_c.
+          $$
+        </div>
+        <p class="lead">
+          The implementation stores the resulting discrete matrices directly as
+          \(A\) and \(B\) in the racing configuration and uses them in absolute
+          coordinates as \(x_{k+1}=Ax_k+Bu_k\). Any constant affine offset from
+          the chosen operating point is absorbed into this fitted discrete
+          model, so the online MPC only propagates with the fixed matrices.
+        </p>
+      </section>
+
+      <section class="section">
+        <h2>Change of Coordinates</h2>
+        <p class="lead">
+          The track provides a centerline map from progress \(s\) and lateral
+          offset \(e_y\) to global position. Let \(p_c(s)\) be the centerline
+          point, \(\psi_c(s)\) be the centerline heading, and \(n_c(s)\) be the
+          unit normal. The global pose used for animation is obtained from the
+          curvilinear state as follows.
+        </p>
+        <div class="math-card">
+          $$
+          \begin{aligned}
+          p_k &=
+          \begin{bmatrix}X_k\\Y_k\end{bmatrix}
+          =p_c(s_k)+e_{y,k}n_c(s_k),\\
+          \psi_k &= \psi_c(s_k)+e_{\psi,k},\\
+          x^{\mathrm{glob}}_k &=
+          \begin{bmatrix}
+          v_{x,k} & v_{y,k} & \omega_{z,k} & \psi_k & X_k & Y_k
+          \end{bmatrix}^{T}.
+          \end{aligned}
+          $$
+        </div>
+        <p class="lead">
+          Obstacle cars are also predicted in track coordinates. Each obstacle
+          advances along the same closed track with fixed lateral offset.
+        </p>
+        <div class="math-card">
+          $$
+          s_{o,i}(t)=s_{o,i}(0)+v_{o,i}t,
+          \qquad
+          e_{y,o,i}(t)=\bar e_{y,o,i}.
+          $$
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Density Construction</h2>
+        <p class="lead">
+          The density has one term for staying inside the track and one term for
+          each moving obstacle car. The total safety density is the product of
+          these terms, so the density decreases near the track boundary or near
+          another car.
+        </p>
+        <div class="math-card">
+          $$
+          \rho(x_k)=\rho_{\mathrm{track}}(x_k)
+          \prod_{i=1}^{M}\rho_i(x_k).
+          $$
+        </div>
+
+        <h3 class="centered-heading">Track Density</h3>
+        <p class="lead">
+          Track safety is measured by lateral clearance from the track boundary.
+          The function \(h_{\mathrm{track}}\) is positive when the car has more
+          than the configured margin, and \(s_{\mathrm{track}}\) normalizes the
+          transition band used by the bump function.
+        </p>
+        <div class="math-card">
+          $$
+          \begin{aligned}
+          c_{\mathrm{track}}(x_k) &= w_{\mathrm{track}}-|e_{y,k}|,\\
+          h_{\mathrm{track}}(x_k) &= c_{\mathrm{track}}(x_k)-m_{\mathrm{track}},\\
+          s_{\mathrm{track}}(x_k) &=
+          \frac{h_{\mathrm{track}}(x_k)}{\Delta_{\mathrm{track}}},\\
+          \rho_{\mathrm{track}}(x_k)
+          &=b\!\left(c_{\mathrm{track}}(x_k);
+          m_{\mathrm{track}},
+          m_{\mathrm{track}}+\Delta_{\mathrm{track}}\right).
+          \end{aligned}
+          $$
+        </div>
+
+        <h3 class="centered-heading">Obstacle Geometry</h3>
+        <p class="lead">
+          Each obstacle is represented by a superellipse in the \((s,e_y)\)
+          frame. The longitudinal difference wraps around the closed lap so a
+          car near the start line can still be close to a car near the end of
+          the lap.
+        </p>
+        <div class="math-card">
+          $$
+          \begin{aligned}
+          \Delta s_i &=
+          \operatorname{wrap}_{L_{\mathrm{lap}}}(s_k-s_{o,i}),\\
+          \Delta e_{y,i} &= e_{y,k}-e_{y,o,i},\\
+          z_i(x_k) &=
+          \left(\frac{|\Delta s_i|}{L_i}\right)^d+
+          \left(\frac{|\Delta e_{y,i}|}{W_i}\right)^d,\\
+          h_i(x_k)&=z_i(x_k)-(1+m_o),\\
+          s_i(x_k)&=\frac{h_i(x_k)}{\Delta_o}.
+          \end{aligned}
+          $$
+        </div>
+        <p class="lead">
+          The unsafe obstacle set is \(h_i(x_k)\lt0\). The value \(s_i(x_k)\) is
+          the normalized density coordinate: \(s_i=0\) at the safety boundary
+          and \(s_i=1\) at the outer edge of the transition band.
+        </p>
+      </section>
+
+      <section class="section">
+        <h2>Bump and Sigmoid Densities</h2>
+        <p class="lead">
+          The racing example compares two obstacle-density maps. Both use the
+          same superellipse value \(z_i(x_k)\), safety boundary \(1+m_o\), and
+          transition width \(\Delta_o\), but they shape the transition
+          differently.
+        </p>
+        <p class="lead">
+          In the generic bump notation, \(r\) is the scalar safety coordinate
+          being shaped, \(r_1\) is the inner boundary where density is zero,
+          \(r_2\) is the outer boundary where density reaches one, and
+          \(\mu=(r-r_1)/(r_2-r_1)\) is the normalized transition coordinate.
+          For obstacle \(i\), \(r=z_i(x_k)\), \(r_1=1+m_o\), and
+          \(r_2=1+m_o+\Delta_o\). For the track boundary,
+          \(r=c_{\mathrm{track}}(x_k)\), \(r_1=m_{\mathrm{track}}\), and
+          \(r_2=m_{\mathrm{track}}+\Delta_{\mathrm{track}}\).
+        </p>
+        <div class="method-grid">
+          <article class="method-card">
+            <h3>Bump Density</h3>
+            <p>
+              The bump density gives a compact transition: it is zero inside
+              the safety boundary, one outside the transition band, and smooth
+              in between. In the obstacle case, \(\mu_i=0\) exactly on the
+              inflated safety boundary and \(\mu_i=1\) at the outer edge of the
+              sensing/transition band.
+            </p>
+            <div class="math-card">
+              $$
+              \phi(\mu)=
+              \begin{cases}
+              0, & \mu\le0,\\
+              \dfrac{\exp(-1/\mu)}
+              {\exp(-1/\mu)+\exp(-1/(1-\mu))}, & 0\lt\mu\lt1,\\
+              1, & \mu\ge1,
+              \end{cases}
+              $$
+              $$
+              \begin{aligned}
+              \mu_i(x_k)&=
+              \frac{z_i(x_k)-(1+m_o)}{\Delta_o},\\
+              \rho_i^{\mathrm{bump}}(x_k)&=\phi(\mu_i(x_k)).
+              \end{aligned}
+              $$
+            </div>
+          </article>
+          <article class="method-card">
+            <h3>Sigmoid Density</h3>
+            <p>
+              The sigmoid density replaces the compact transition with a
+              logistic map, making the change less abrupt while keeping a
+              useful gradient near the unsafe region.
+            </p>
+            <div class="math-card">
+              $$
+              \begin{aligned}
+              z_{\mathrm{mid}}&=1+m_o+\frac{\Delta_o}{2},\\
+              \sigma_i(x_k)&=
+              \frac{z_i(x_k)-z_{\mathrm{mid}}}{\Delta_o},\\
+              \rho_i^{\mathrm{sig}}(x_k)
+              &=\frac{1}{1+\exp(-\kappa\sigma_i(x_k))}.
+              \end{aligned}
+              $$
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Density MPC Formulation</h2>
+        <p class="lead">
+          At every simulation step, the controller solves an MPC over steering,
+          acceleration, and nonnegative density-rate slack variables. The
+          objective tracks the desired speed and centerline, penalizes control
+          effort and control-rate changes, and discourages low-density states.
+        </p>
+        <div class="math-card">
+          $$
+          \begin{aligned}
+          \min_{\{u_j,c_j\}_{j=0}^{N-1}}\quad
+          &\sum_{j=0}^{N-1}
+          \Big[
+          q_v(v_{x,j+1}-v_{\mathrm{ref}})^2
+          +q_\psi e_{\psi,j+1}^2
+          +q_y(e_{y,j+1}-e_{y,\mathrm{ref}})^2\\
+          &\qquad
+          +r_\delta\delta_j^2+r_a a_j^2
+          +r_{\Delta\delta}(\delta_j-\delta_{j-1})^2
+          +r_{\Delta a}(a_j-a_{j-1})^2\\
+          &\qquad
+          +q_\rho(1-\rho(x_{j+1}))^2
+          +w_c c_j^2
+          \Big]\\
+          \mathrm{s.t.}\quad
+          &x_0=x_k,\\
+          &x_{j+1}=Ax_j+Bu_j,\\
+          &\rho(x_{j+1})-\rho(x_j)
+          +\Delta t\,\operatorname{tr}(A)\rho(x_j)
+          -\Delta t\,c_j\rho(x_j)\ge0,\\
+          &\rho(x_{j+1})\ge\rho_{\min},\\
+          &-\delta_{\max}\le\delta_j\le\delta_{\max},\\
+          &-a_{\max}\le a_j\le a_{\max},\qquad c_j\ge0.
+          \end{aligned}
+          $$
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Results</h2>
+        <p class="lead">
+          Both rollouts use the same L-shaped track, moving obstacle cars, MPC
+          cost, and prediction horizon. The only change is the obstacle density
+          map: compact bump versus sigmoid. In this setup, the bump density is
+          clearly better: it gives an earlier and cleaner passing maneuver with
+          the default parameters. The sigmoid density can work, but it is much
+          more sensitive to the transition width and sharpness, so tuning it can
+          be tricky. The compact bump density works much more reliably out of
+          the box.
+        </p>
+        <div class="video-stack">
+          <article class="video-card track-video">
+            <h3>Bump Density</h3>
+            <video autoplay muted loop playsinline controls preload="metadata">
+              <source src="assets/videos/density_mpc_Ltrack_bump.mp4" type="video/mp4">
+            </video>
+            <p>
+              The bump density creates a crisp safety transition around the
+              obstacle cars, so the MPC commits to the pass early and keeps the
+              trajectory smooth.
+            </p>
+          </article>
+          <article class="video-card track-video">
+            <h3>Sigmoid Density</h3>
+            <video autoplay muted loop playsinline controls preload="metadata">
+              <source src="assets/videos/density_mpc_Ltrack_sigmoid.mp4" type="video/mp4">
+            </video>
+            <p>
+              The sigmoid density gives a softer transition. That smoothness can
+              be useful, but in this racing example it reacts more gradually and
+              needs more careful tuning to match the bump result.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section compact">
+        <p class="lead">
+          The lap setup is adapted from the
+          <a href="https://github.com/HybridRobotics/car-racing">HybridRobotics/car-racing</a>
+          reference example.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>

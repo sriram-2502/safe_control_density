@@ -271,10 +271,7 @@ def main():
             goal=goal,
             obstacles=[obstacle],
             agent_radius=agent_radius,
-            title=(
-                "Single Integrator - Static Obstacle "
-                f"(CLF-CBF filter, gamma={args.gamma:.2f}, clf_rate={args.clf_rate:.2f})"
-            ),
+            title=f"CLF-CBF filter (gamma={args.gamma:.2f})",
             animate=animate,
             save_animation=save_animation,
             animation_path=animation_path,

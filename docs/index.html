@@ -3,13 +3,14 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Safe Control Density: density-based safety filters and MPC examples for obstacle avoidance.">
-    <title>Safe Control Density</title>
+    <meta name="description" content="Safe Navigation using Density Functions: density-based feedback, safety filters, and MPC examples for robot navigation.">
+    <title>Safe Navigation using Density Functions</title>
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
     <link rel="stylesheet" href="style.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"></script>
+    <script defer src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <script>
       document.addEventListener("DOMContentLoaded", function () {
         renderMathInElement(document.body, {
@@ -27,174 +28,283 @@
       <div class="topbar-inner">
         <a class="brand" href="index.html">Safe Control Density</a>
         <nav class="nav-links" aria-label="Site navigation">
-          <a href="single-integrator.html">Single Integrator</a>
-          <a href="unicycle.html">Unicycle</a>
-          <a href="racing.html">Racing</a>
-          <a href="../README.md">README</a>
-          <a href="https://github.com/sriram-2502/safe_control_density">GitHub</a>
+          <a href="index.html">Home</a>
+          <a href="density-construction.html">Density Construction</a>
+          <a href="single-integrator.html">Holonomic</a>
+          <a href="unicycle.html">Non-Holonomic</a>
+          <a href="autonomous-racing.html">Racing</a>
         </nav>
       </div>
     </header>
     <main>
       <section class="hero">
-        <p class="eyebrow">Density-based safe control</p>
-        <h1>Safe Control Density</h1>
+        <p class="eyebrow"></p>
+        <h1>SAFE NAVIGATION USING DENSITY FUNCTIONS</h1>
         <p class="subtitle">
-          Lightweight Python examples for density feedback, safety filters, and
-          short-horizon MPC in obstacle-rich navigation problems.
+          Density functions for robot navigation with safety
+          constraints.
         </p>
         <div class="authors">
-          <span>Single-integrator navigation</span>
-          <span>Unicycle safety filters</span>
-          <span>Racing density MPC</span>
+          <span>Sriram S. K. S Narayanan</span>
+          <span>Umesh Vaidya</span>
         </div>
         <nav class="actions" aria-label="Project links">
-          <a href="unicycle.html">Unicycle results</a>
-          <a href="single-integrator.html">Single-integrator results</a>
-          <a href="racing.html">Racing results</a>
+          <a href="single-integrator.html">Holonomic</a>
+          <a href="unicycle.html">Non-Holonomic</a>
+          <a href="autonomous-racing.html">Racing</a>
           <a href="https://github.com/sriram-2502/safe_control_density">GitHub</a>
         </nav>
       </section>
 
       <section class="section">
-        <h2>Overview</h2>
         <p>
-          These examples build a smooth density field that is high near the goal
-          and suppressed near obstacles. Controllers then either follow the
-          density gradient directly or enforce a one-step or finite-horizon
-          density transport condition.
+          This work explores a density-function view of safe robot
+          navigation. Instead of designing a potential field that directly
+          pulls the robot to a goal, we construct a smooth density function over the
+          environment: density is shaped to vanish near unsafe obstacle regions
+          and to concentrate around desired target sets. Moving in the positive
+          direction of this density, or enforcing its discrete transport inside
+          a safety filter or MPC, gives controllers that can navigate cluttered
+          spaces while respecting safety constraints. The examples here turn
+          the theory into small reproducible simulations: single-integrator
+          robots, unicycles with nonholonomic steering, and autonomous-racing. Overall, this research provides analytical density construction for safe navigation, extensions to time-varying obstacles and targets, and use as a high-level planner for more complex robots such as quadrupeds.
         </p>
-        <div class="math-card">
-          $$
-          \rho(z)=\frac{\Phi(p)}{V(z)^\alpha},
-          \qquad
-          \Phi(p)=\prod_i b_i(p)
-          $$
+        </section>
+
+      <section class="section">
+        <h2>Density Function Construction</h2>
+        <p class="lead">
+          The plot shows how the density changes with the
+          obstacle and target parameters. The displayed obstacle is centered at the origin and the goal is at
+          \((1.8,1.4)\).
+        </p>
+        <div class="interactive-panel">
+          <div class="control-panel" aria-label="Density plot controls">
+            <label>
+              Obstacle shape
+              <select id="density-shape">
+                <option value="circle">Circle</option>
+                <option value="diamond">Diamond</option>
+                <option value="square">Rounded square</option>
+                <option value="ellipse">Ellipse</option>
+              </select>
+            </label>
+            <label>
+              Safety radius <span id="density-r1-label">0.55</span>
+              <input id="density-r1" type="range" min="0.25" max="0.95" step="0.05" value="0.55">
+            </label>
+            <label>
+              Sensing radius <span id="density-r2-label">1.25</span>
+              <input id="density-r2" type="range" min="0.70" max="1.90" step="0.05" value="1.25">
+            </label>
+            <label>
+              Goal exponent alpha <span id="density-alpha-label">0.40</span>
+              <input id="density-alpha" type="range" min="0.15" max="1.20" step="0.05" value="0.40">
+            </label>
+          </div>
+          <div id="density-plot" class="density-plot" role="img" aria-label="Interactive 3D density surface"></div>
         </div>
       </section>
 
       <section class="section">
-        <h2>Representative Rollouts</h2>
-        <div class="video-grid three">
-          <article class="video-card">
-            <video autoplay muted loop playsinline controls preload="auto">
-              <source src="assets/videos/unicycle_static_density_mpc.mp4" type="video/mp4">
-            </video>
-            <h3>Unicycle Density MPC</h3>
-            <p>Short-horizon density MPC steers a nonholonomic robot around a static obstacle.</p>
+        <h2>Related Papers</h2>
+        <p class="lead">
+          The papers below organize the density-function line of work by the
+          controller architecture where the density is used.
+        </p>
+        <div class="method-grid three">
+          <article class="method-card">
+            <h3>Feedback Controller</h3>
+            <p>
+              Analytical density functions are used directly as feedback
+              controllers or as high-level motion planners with applications to quadruped motion
+              planning, and navigatoin in dynamic-environments.
+            </p>
+            <p class="paper-link"><a href="https://arxiv.org/abs/2306.15830">Safe navigation with density functions</a></p>
+            <p class="paper-link"><a href="https://arxiv.org/abs/2312.09173">Quadruped motion planning</a></p>
+            <p class="paper-link"><a href="https://arxiv.org/abs/2411.12206">Dynamic environments</a></p>
           </article>
-          <article class="video-card">
-            <video autoplay muted loop playsinline controls preload="auto">
-              <source src="assets/videos/unicycle_local_sensing_mpc_reactive_fov.mp4" type="video/mp4">
-            </video>
-            <h3>Local Sensing</h3>
-            <p>The controller only activates obstacles that are sensed or held in short-term memory.</p>
+          <article class="method-card">
+            <h3>Density Filters</h3>
+            <p>
+              Density functions are used inside one-step safety filters. These filters minimally modify a nominal command
+              while enforcing the density condition.
+            </p>
+            <p class="paper-link"><a href="https://arxiv.org/abs/2403.14464">Density-filter formulation</a></p>
+            <p class="paper-link"><a href="https://ieeexplore.ieee.org/abstract/document/11107456/">Dynamic environments with quadruped robots</a></p>
           </article>
-          <article class="video-card">
-            <video autoplay muted loop playsinline controls preload="auto">
-              <source src="assets/videos/density_mpc_Ltrack_bump.mp4" type="video/mp4">
-            </video>
-            <h3>Racing Density MPC</h3>
-            <p>Density MPC-CDF tracks a circuit while avoiding moving obstacle cars.</p>
+          <article class="method-card">
+            <h3>Density MPC</h3>
+            <p>
+              The density transport condition is enforced along a predicted
+              trajectory in a MPC setting. This enables safe finite-horizon predtice control with density
+              constraints
+            </p>
+            <p class="paper-link"><a href="https://asmedigitalcollection.asme.org/lettersdynsys/article/6/1/011014/1222657">Density MPC-CDF</a></p>
           </article>
         </div>
       </section>
 
-      <section class="section split">
-        <div>
+      <section class="section split controller-section">
+        <div class="controller-copy">
+          <h2>Density Feedback Controller</h2>
+          <p>
+            The density function can be used to design safe and stabilizing
+            feedback controllers. For a single-integrator system, we use the
+            positive gradient of the density function as the controller. The
+            obstacle terms push density away from unsafe sets, while the target
+            term increases density near the goal.
+          </p>
+          <div class="math-card">
+            $$
+            u_k=\nabla\rho(x_k)
+            $$
+          </div>
+        </div>
+        <article class="video-card split-video">
+          <div class="video-crop">
+            <video autoplay muted loop playsinline controls preload="metadata">
+              <source src="assets/videos/single_integrator_static_filter.mp4" type="video/mp4">
+            </video>
+          </div>
+        </article>
+      </section>
+
+      <section class="section controller-section full-controller-section density-filter-section">
+        <div class="controller-copy">
           <h2>Density Safety Filter</h2>
           <p>
-            The one-step density filter minimally modifies a nominal command
-            \(u_{\mathrm{nom}}\) so the next state satisfies a discrete density
-            condition.
+            Consider the nonlinear system \(\dot{x}=F(x,u)\). The safety filter keeps a nominal controller in the loop and only
+            changes it when needed. At each step, it solves a small quadratic
+            program that stays close to \(u_{\mathrm{nom}}\) while enforcing the
+            one-step density condition for the discrete dynamics.
           </p>
-        </div>
-        <div class="math-card">
-          $$
-          \begin{aligned}
-          \min_{u,s}\quad
-          &\frac{1}{2}\|u-u_{\mathrm{nom}}\|_W^2+\frac{1}{2}w_s\|s\|^2 \\
-          \mathrm{s.t.}\quad
-          &\rho(z_{k+1})-\rho(z_k)+\Delta t\,\mathrm{div}(F_d)\rho(z_k)+s\ge 0
-          \end{aligned}
-          $$
+          <div class="math-card">
+            $$
+            \begin{aligned}
+            \min_{u_k,s}\quad
+            &\frac{1}{2}\|u_k-u_{\mathrm{nom}}\|_W^2+\frac{1}{2}w_s s^2\\
+            \mathrm{s.t.}\quad
+            &\rho(x_{k+1})-\rho(x_k)
+            +\Delta t\,\nabla\!\cdot(F_d\rho)(x_k,u_k)+s\ge 0,\\
+            &u_{\min}\le u_k\le u_{\max},\qquad s\ge 0.
+            \end{aligned}
+            $$
+          </div>
+
+          <p>
+            For a unicycle, the filter applies the same one-step density
+            condition through the nonholonomic dynamics. In the multi-obstacle
+            setup, each obstacle contributes a density constraint, and the
+            optimizer adjusts the forward-speed and yaw-rate command just enough
+            to keep the next predicted state in a safe high-density direction.
+          </p>
+
+          <article class="video-card controller-video square-video home-compact-video">
+            <video autoplay muted loop playsinline controls preload="metadata">
+              <source src="assets/videos/unicycle_static_multi_filter.mp4" type="video/mp4">
+            </video>
+          </article>
+
+          <p>
+            The sensing radius controls how early an obstacle begins shaping the
+            density. Increasing this radius makes the controller react earlier
+            to unsafe regions, producing a more conservative safety margin.
+            This is useful for achieving a desired degree of safety with a
+            physically intuitive tuning parameter.
+          </p>
+
+          <article class="video-card wide controller-video">
+            <video autoplay muted loop playsinline controls preload="metadata">
+              <source src="assets/videos/unicycle_density_filter_sensing_radius_sweep.mp4" type="video/mp4">
+            </video>
+          </article>
         </div>
       </section>
 
-      <section class="section">
-        <h2>Controller Comparisons</h2>
-        <div class="video-grid two">
-          <article class="video-card wide">
-            <video autoplay muted loop playsinline controls preload="metadata">
-              <source src="assets/videos/unicycle_static_density_controllers.mp4" type="video/mp4">
-            </video>
-            <h3>Density Feedback vs Filter vs MPC</h3>
-            <p>
-              Direct feedback follows the density field, the filter solves a
-              one-step safety problem, and MPC reasons over a finite horizon.
-            </p>
-          </article>
-          <article class="video-card wide">
+      <section class="section controller-section full-controller-section cbf-section">
+        <div class="controller-copy">
+          <h2>Comparison With CBF</h2>
+          <p>
+            For the unicycle model, a vanilla one-step CBF filter encodes
+            obstacle safety only through the robot's \(x,y\) position. The
+            filter can reduce forward speed as the robot approaches the unsafe
+            set, but the CBF constraint has no direct control authority over
+            the yaw-rate input that would steer the robot around the obstacle
+            and toward the goal. In this example, the vanilla CBF filter stays
+            safe but fails to make progress. See the
+            <a href="unicycle.html#cbf-baselines">unicycle CBF discussion</a>
+            for the full setup.
+          </p>
+
+          <article class="video-card wide controller-video">
             <video autoplay muted loop playsinline controls preload="metadata">
               <source src="assets/videos/unicycle_static_safety_filters.mp4" type="video/mp4">
             </video>
-            <h3>Density and CBF Safety Filters</h3>
-            <p>
-              One-step CLF-CBF stays safe but can park at the obstacle; MPC-style
-              controllers recover steering through the prediction horizon.
-            </p>
           </article>
         </div>
       </section>
 
-      <section class="section">
-        <h2>Scenario Gallery</h2>
-        <div class="gallery">
-          <article>
-            <video muted loop playsinline controls preload="metadata">
-              <source src="assets/videos/single_integrator_static_filter.mp4" type="video/mp4">
-            </video>
-            <h3>Single Integrator Filter</h3>
-          </article>
-          <article>
-            <video muted loop playsinline controls preload="metadata">
-              <source src="assets/videos/single_integrator_multi_local_filter.mp4" type="video/mp4">
-            </video>
-            <h3>Single Integrator Local Sensing</h3>
-          </article>
-          <article>
-            <video muted loop playsinline controls preload="metadata">
-              <source src="assets/videos/unicycle_multi.mp4" type="video/mp4">
-            </video>
-            <h3>Unicycle Multi-Obstacle</h3>
-          </article>
-          <article>
-            <video muted loop playsinline controls preload="metadata">
-              <source src="assets/videos/unicycle_static_multi_filter.mp4" type="video/mp4">
-            </video>
-            <h3>Unicycle Density Filter</h3>
-          </article>
-        </div>
-      </section>
+      <section class="section controller-section full-controller-section mpc-section">
+        <div class="controller-copy">
+          <h2>Density MPC</h2>
+          <p>
+            In the Density MPC we enforce the density transport condition along the
+            predicted trajectory. The optimization balances task objectives, input
+            effort, subject system constraints, and the density transport condition at each step.
+          </p>
+          <div class="math-card">
+            $$
+            \begin{aligned}
+            \min_{x,u,c}\quad
+            &\sum_{j=0}^{N-1}
+            \ell(x_j,u_j,c_j)+\ell_f(x_N)\\
+            \mathrm{s.t.}\quad
+            &x_0=x_{op},\\
+            &x_{j+1}=F_d(x_j,u_j)\\
+            &\rho(x_{j+1})-\rho(x_j)
+            +\Delta t\,\nabla\!\cdot\!\left(F_d\rho\right)(x_j,u_j)
+            -\Delta t\,c_j\rho(x_j)\ge 0,\\
+            &u_j\in\mathcal U, \\
+            &c_j\ge 0,\qquad
+            \end{aligned}
+            $$
+          </div>
+          <p>
+            For the unicycle model, density MPC plans over forward-speed and
+            yaw-rate inputs so the robot can safely steer around obstacles. The MPC
+            activates the density constraints for obstacles inside the current
+            field of view while continuing to optimize progress toward the
+            goal.
+          </p>
 
-      <section class="section split">
-        <div>
-          <h2>Reproduce</h2>
-          <p>Install the package in editable mode, then run any example script from the repository root.</p>
+          <article class="video-card mpc-video square-video home-compact-video">
+            <video autoplay muted loop playsinline controls preload="metadata">
+              <source src="assets/videos/unicycle_local_sensing_mpc_reactive_fov.mp4" type="video/mp4">
+            </video>
+          </article>
+
+          <p>
+            In the car racing example, Density MPC uses a unicycle-style vehicle model to predict the ego car’s motion over a short horizon. Each surrounding car defines its own density function, which suppresses unsafe regions around that vehicle. At every step, the MPC solves for the best steering and throttle/brake inputs that make progress along the track while satisfying the density constraints, allowing the ego car to overtake other cars in a safe and controlled manner.
+          </p>
+
+          <article class="video-card mpc-video track-video">
+            <video autoplay muted loop playsinline controls preload="metadata">
+              <source src="assets/videos/density_mpc_Ltrack_bump.mp4" type="video/mp4">
+            </video>
+          </article>
         </div>
-        <pre><code>python -m pip install -e .
-python examples/unicycle/static_single_obstacle/density_mpc.py --save-mp4 --horizon 7 --no-plot
-python examples/unicycle/static_single_obstacle/compare_safety_filters.py --no-show</code></pre>
       </section>
     </main>
 
     <footer>
       <p>
         Safe Control Density ·
-        <a href="unicycle.html">Unicycle results</a> ·
-        <a href="single-integrator.html">Single-integrator results</a> ·
+        <a href="unicycle.html">Non-Holonomic results</a> ·
+        <a href="single-integrator.html">Holonomic results</a> ·
         <a href="../LICENSE">License</a>
       </p>
     </footer>
+    <script src="assets/density-demo.js"></script>
   </body>
 </html>

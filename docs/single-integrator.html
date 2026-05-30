@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Single Integrator Results · Safe Control Density</title>
+    <title>Holonomic Results · Safe Control Density</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
     <link rel="stylesheet" href="style.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
@@ -26,178 +26,180 @@
         <a class="brand" href="index.html">Safe Control Density</a>
         <nav class="nav-links" aria-label="Site navigation">
           <a href="index.html">Home</a>
-          <a href="unicycle.html">Unicycle</a>
-          <a href="racing.html">Racing</a>
-          <a href="../examples/single_integrator/README.md">README</a>
+          <a href="density-construction.html">Density Construction</a>
+          <a href="single-integrator.html">Holonomic</a>
+          <a href="unicycle.html">Non-Holonomic</a>
+          <a href="autonomous-racing.html">Racing</a>
         </nav>
       </div>
     </header>
 
     <main>
       <section class="hero">
-        <p class="eyebrow">Example family</p>
-        <h1>Single Integrator</h1>
+        <h1>Holonomic System</h1>
         <p class="subtitle">
-          A planar point robot with directly commanded velocity. These examples
-          compare density feedback, one-step density filtering, and CLF-CBF
-          filtering.
+          A planar holonomic integrator system with directly commanded velocity. The examples
+          show density feedback, density filtering, and CBF-style safety
+          filtering using. This safe tajectory can also be used as a motion plan for complex robotic systems such as quadrupeds and robot arms.
         </p>
       </section>
 
-      <section class="section compact">
-        <h2>Model</h2>
+      <section class="section">
+        <h2>System Dynamics</h2>
+        <p class="lead">
+          The single-integrator state is the planar robot position
+          \(x=[x_1,x_2]^T\). The input \(u=[u_1,u_2]^T\) directly controls the
+          robot velocity, which makes this the simplest setting for studying
+          density-based navigation.
+        </p>
         <div class="math-card">
           $$
-          p_{k+1}=p_k+\Delta t\,u_k,
+          \dot{x}=u,
           \qquad
-          u_k=[u_x,u_y]^T
+          x_{k+1}=x_k+\Delta t\,u_k .
           $$
         </div>
       </section>
 
       <section class="section">
-        <h2>Density Function</h2>
+        <h2>Density Feedback Controller</h2>
         <p class="lead">
-          For the single-integrator model, the density is defined directly over
-          planar position. The same obstacle bump construction is used, but
-          there is no heading term.
+          The direct controller evaluates the density gradient at the current
+          state and applies it as the input for the next discrete step. The same
+          feedback law handles both the single-obstacle and multi-obstacle cases
+          because obstacle information enters through \(\rho\).
         </p>
-        <div class="method-grid">
-          <article class="method-card">
-            <h3>Position Density</h3>
-            <p>The goal term grows as the point robot approaches \(p_g\).</p>
-            <div class="math-card">
-              $$
-              \rho(p)=\frac{\Phi(p)}{\|p-p_g\|^{2\alpha}},
-              \qquad
-              \Phi(p)=\prod_i b_i(p)
-              $$
-            </div>
-          </article>
-          <article class="method-card">
-            <h3>Circle Example</h3>
-            <p>For a circular obstacle centered at \(c\), use \(d(p)=\|p-c\|_2\).</p>
-            <div class="math-card">
-              $$
-              m(p)=\frac{\|p-c\|_2^2-r_1^2}{r_2^2-r_1^2}
-              $$
-            </div>
-          </article>
+        <div class="math-card">
+          $$
+          \begin{aligned}
+          u_k &= \nabla\rho(x_k),\\
+          x_{k+1} &= x_k+\Delta t\,u_k.
+          \end{aligned}
+          $$
         </div>
-      </section>
-
-      <section class="section">
-        <h2>Controller Formulations</h2>
-        <div class="method-grid">
-          <article class="method-card">
-            <h3>Density Feedback</h3>
-            <p>The direct controller follows the density gradient with optional saturation.</p>
-            <div class="math-card">
-              $$
-              u(p)=k_\rho\nabla\rho(p)
-              $$
-            </div>
-          </article>
-          <article class="method-card">
-            <h3>Density Filter</h3>
-            <p>The one-step filter modifies a nominal velocity only when needed for the density condition.</p>
-            <div class="math-card">
-              $$
-              \begin{aligned}
-              \min_{u,s}\;&\frac{1}{2}\|u-u_{\mathrm{nom}}\|_W^2+\frac{1}{2}w_s\|s\|^2\\
-              \mathrm{s.t.}\;&
-              \rho(p_{k+1})-\rho(p_k)+s\ge 0
-              \end{aligned}
-              $$
-            </div>
-          </article>
-          <article class="method-card">
-            <h3>CLF-CBF Filter</h3>
-            <p>The CBF baseline uses a hard geometric safety condition for the inflated obstacle.</p>
-            <div class="math-card">
-              $$
-              h(p_{k+1})\ge (1-\gamma)h(p_k),
-              \qquad
-              h(p)=\|p-c\|^2-R^2
-              $$
-            </div>
-          </article>
-          <article class="method-card">
-            <h3>Why No Density MPC Here?</h3>
-            <p>
-              The single-integrator dynamics directly control planar velocity,
-              so the one-step filter already has direct authority over the next
-              position.
-            </p>
-          </article>
-        </div>
-      </section>
-
-      <section class="section">
-        <h2>Static Obstacle</h2>
-        <p class="lead">Direct feedback follows the density gradient, while the filter minimally modifies a nominal command to satisfy the density condition.</p>
-        <div class="gallery three">
-          <article>
+        <div class="video-grid two crop-videos multi-obstacle-videos">
+          <article class="video-card">
+            <h3>Single Obstacle</h3>
             <video autoplay muted loop playsinline controls preload="metadata">
               <source src="assets/videos/single_integrator_static.mp4" type="video/mp4">
             </video>
-            <h3>Density Feedback</h3>
           </article>
-          <article>
+          <article class="video-card">
+            <h3>Multiple Obstacles</h3>
+            <video autoplay muted loop playsinline controls preload="metadata">
+              <source src="assets/videos/single_integrator_multi.mp4" type="video/mp4">
+            </video>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Density Safety Filter</h2>
+        <p class="lead">
+          The density filter keeps a nominal controller in the loop and modifies
+          it only when the one-step density condition requires intervention. In
+          local sensing, the same filter is solved with only the currently active
+          obstacle set.
+        </p>
+        <div class="math-card">
+          $$
+          \begin{aligned}
+          \min_{u_k,s}\quad
+          &\frac{1}{2}\|u_k-u_{\mathrm{nom}}\|_W^2
+          +\frac{1}{2}w_s s^2\\
+          \mathrm{s.t.}\quad
+          &x_{k+1}=x_k+\Delta t\,u_k,\\
+          &\rho(x_{k+1})-\rho(x_k)+s\ge 0,\\
+          &u_k\in\mathcal U,\qquad s\ge0.
+          \end{aligned}
+          $$
+        </div>
+        <div class="video-grid three crop-videos multi-obstacle-videos">
+          <article class="video-card">
+            <h3>Single Obstacle</h3>
             <video autoplay muted loop playsinline controls preload="metadata">
               <source src="assets/videos/single_integrator_static_filter.mp4" type="video/mp4">
             </video>
-            <h3>Density Filter</h3>
           </article>
-          <article>
+          <article class="video-card">
+            <h3>Multiple Obstacles</h3>
+            <video autoplay muted loop playsinline controls preload="metadata">
+              <source src="assets/videos/single_integrator_multi_filter.mp4" type="video/mp4">
+            </video>
+          </article>
+          <article class="video-card">
+            <h3>Local Sensing</h3>
+            <video autoplay muted loop playsinline controls preload="metadata">
+              <source src="assets/videos/single_integrator_multi_local_filter.mp4" type="video/mp4">
+            </video>
+          </article>
+        </div>
+
+        <div style="height: 36px;"></div>
+        <h3 style="text-align: center;">Density-Filter Sensing-Radius Sweep</h3>
+        <p class="lead">
+          Changing the sensing radius changes when the obstacle begins shaping
+          the density. A smaller radius keeps the trajectory closer to the
+          nominal path until the robot is near the obstacle, while a larger
+          radius makes the filter react earlier and creates a larger safety
+          margin.
+        </p>
+        <article class="video-card wide">
+          <video autoplay muted loop playsinline controls preload="metadata">
+            <source src="assets/videos/single_integrator_density_filter_sensing_radius_sweep.mp4" type="video/mp4">
+          </video>
+        </article>
+      </section>
+
+      <section class="section">
+        <h2>CLF-CBF Filter</h2>
+        <p class="lead">
+          The CLF-CBF filter enforces a barrier condition around the obstacle
+          and a Lyapunov decrease condition toward the goal using the same
+          discrete-time update.
+        </p>
+        <div class="math-card">
+          $$
+          h(x)=\|x-c\|^2-R^2,
+          \qquad
+          V(x)=\|x-x_g\|^2.
+          $$
+        </div>
+        <div class="math-card">
+          $$
+          \begin{aligned}
+          \min_{u_k,s_h,s_v}\quad
+          &\frac{1}{2}\|u_k\|^2
+          +\frac{1}{2}w_hs_h^2
+          +\frac{1}{2}w_vs_v^2\\
+          \mathrm{s.t.}\quad
+          &x_{k+1}=x_k+\Delta t\,u_k,\\
+          &h(x_{k+1})\ge(1-\gamma)h(x_k)-s_h,\\
+          &V(x_{k+1})\le(1-c)V(x_k)+s_v,\\
+          &u_k\in\mathcal U,\qquad s_h,s_v\ge0.
+          \end{aligned}
+          $$
+        </div>
+        <div class="video-stack">
+          <article class="video-card square-video">
             <video autoplay muted loop playsinline controls preload="metadata">
               <source src="assets/videos/single_integrator_static_cbf_filter.mp4" type="video/mp4">
             </video>
-            <h3>CLF-CBF Filter</h3>
           </article>
         </div>
       </section>
 
       <section class="section">
-        <h2>Multi-Obstacle and Local Sensing</h2>
-        <div class="gallery three">
-          <article>
-            <video muted loop playsinline controls preload="metadata">
-              <source src="assets/videos/single_integrator_multi.mp4" type="video/mp4">
-            </video>
-            <h3>Multi-Obstacle Feedback</h3>
-          </article>
-          <article>
-            <video muted loop playsinline controls preload="metadata">
-              <source src="assets/videos/single_integrator_multi_filter.mp4" type="video/mp4">
-            </video>
-            <h3>Multi-Obstacle Filter</h3>
-          </article>
-          <article>
-            <video muted loop playsinline controls preload="metadata">
-              <source src="assets/videos/single_integrator_multi_local_filter.mp4" type="video/mp4">
-            </video>
-            <h3>Local Sensing Filter</h3>
-          </article>
-        </div>
-      </section>
-
-      <section class="section">
-        <h2>Comparison Dashboards</h2>
-        <div class="video-grid two">
+        <h2>Comparison with CLF-CBF filter</h2>
+        <p class="lead">
+          This comparison places the density controllers and CLF-CBF filter in
+          the same single-obstacle scenario. With \(\gamma=0.85\), the
+          exponential CBF behavior is safe but less intuitive to tune for obtaining a desired safety margin. The density function directly encodes the desired safety margin and can be tuned more intuitively by chaning the sensing radius. 
+        <div class="video-stack">
           <article class="video-card wide">
-            <video muted loop playsinline controls preload="metadata">
+            <video autoplay muted loop playsinline controls preload="metadata">
               <source src="assets/videos/single_integrator_static_safety_filters.mp4" type="video/mp4">
             </video>
-            <h3>Safety Filters</h3>
-            <p>Density and CLF-CBF filters on the same single-obstacle scenario.</p>
-          </article>
-          <article class="video-card wide">
-            <video muted loop playsinline controls preload="metadata">
-              <source src="assets/videos/single_integrator_clf_cbf_filter_gamma_sweep.mp4" type="video/mp4">
-            </video>
-            <h3>CLF-CBF Gamma Sweep</h3>
-            <p>Effect of the discrete CBF rate on behavior near the obstacle.</p>
           </article>
         </div>
       </section>
