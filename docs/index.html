@@ -48,6 +48,7 @@
           <span>Sriram S. K. S Narayanan</span>
           <span>Umesh Vaidya</span>
         </div>
+        <p class="affiliation">Clemson University</p>
         <nav class="actions" aria-label="Project links">
           <a href="single-integrator.html">Holonomic</a>
           <a href="unicycle.html">Non-Holonomic</a>
@@ -58,8 +59,7 @@
 
       <section class="section">
         <p>
-          This work explores a density-function view of safe robot
-          navigation. Instead of designing a potential field that directly
+          This work develops a density-function based framework for safe robot navigation. Instead of designing a potential field that directly
           pulls the robot to a goal, we construct a smooth density function over the
           environment: density is shaped to vanish near unsafe obstacle regions
           and to concentrate around desired target sets. Moving in the positive
@@ -103,45 +103,6 @@
             </label>
           </div>
           <div id="density-plot" class="density-plot" role="img" aria-label="Interactive 3D density surface"></div>
-        </div>
-      </section>
-
-      <section class="section">
-        <h2>Related Papers</h2>
-        <p class="lead">
-          The papers below organize the density-function line of work by the
-          controller architecture where the density is used.
-        </p>
-        <div class="method-grid three">
-          <article class="method-card">
-            <h3>Feedback Controller</h3>
-            <p>
-              Analytical density functions are used directly as feedback
-              controllers or as high-level motion planners with applications to quadruped motion
-              planning, and navigatoin in dynamic-environments.
-            </p>
-            <p class="paper-link"><a href="https://arxiv.org/abs/2306.15830">Safe navigation with density functions</a></p>
-            <p class="paper-link"><a href="https://arxiv.org/abs/2312.09173">Quadruped motion planning</a></p>
-            <p class="paper-link"><a href="https://arxiv.org/abs/2411.12206">Dynamic environments</a></p>
-          </article>
-          <article class="method-card">
-            <h3>Density Filters</h3>
-            <p>
-              Density functions are used inside one-step safety filters. These filters minimally modify a nominal command
-              while enforcing the density condition.
-            </p>
-            <p class="paper-link"><a href="https://arxiv.org/abs/2403.14464">Density-filter formulation</a></p>
-            <p class="paper-link"><a href="https://ieeexplore.ieee.org/abstract/document/11107456/">Dynamic environments with quadruped robots</a></p>
-          </article>
-          <article class="method-card">
-            <h3>Density MPC</h3>
-            <p>
-              The density transport condition is enforced along a predicted
-              trajectory in a MPC setting. This enables safe finite-horizon predtice control with density
-              constraints
-            </p>
-            <p class="paper-link"><a href="https://asmedigitalcollection.asme.org/lettersdynsys/article/6/1/011014/1222657">Density MPC-CDF</a></p>
-          </article>
         </div>
       </section>
 
@@ -295,14 +256,78 @@
           </article>
         </div>
       </section>
+
+      <section class="section">
+        <h2>Related Publications</h2>
+        <div class="method-grid three">
+          <article class="method-card">
+            <h3>Feedback Controller</h3>
+            <p>
+              Analytical density functions are used directly as feedback
+              controllers or as high-level motion planners with applications to
+              quadruped motion planning and navigation in dynamic environments.
+            </p>
+            <ol class="citation-list">
+              <li>
+                Zheng, Andrew*, Sriram SKS Narayanan*, and Umesh Vaidya.
+                "<a href="https://arxiv.org/abs/2306.15830">Safe Navigation using Density Functions</a>."
+                <em>arXiv</em>, 2023, arXiv:2306.15830.
+              </li>
+              <li>
+                Narayanan, Sriram SKS, Andrew Zheng, and Umesh Vaidya.
+                "<a href="https://arxiv.org/abs/2312.09173">Safe Motion Planning for Quadruped Robots Using Density Functions</a>."
+                <em>arXiv</em>, 2023, arXiv:2312.09173.
+              </li>
+              <li>
+                Narayanan, Sriram SKS, Joseph Moyalan, and Umesh Vaidya.
+                "<a href="https://arxiv.org/abs/2411.12206">Safe Navigation in Dynamic Environments using Density Functions</a>."
+                <em>arXiv</em>, 2024, arXiv:2411.12206.
+              </li>
+            </ol>
+          </article>
+          <article class="method-card">
+            <h3>Density Filters</h3>
+            <p>
+              Density functions are used inside one-step safety filters. These
+              filters minimally modify a nominal command
+              while enforcing the density condition.
+            </p>
+            <ol class="citation-list">
+              <li>
+                Moyalan, Joseph, Sriram SKS Narayanan, Andrew Zheng, and Umesh Vaidya.
+                "<a href="https://arxiv.org/abs/2403.14464">Synthesizing Controller for Safe Navigation using Control Density Function</a>."
+                <em>arXiv</em>, 2024, arXiv:2403.14464.
+              </li>
+              <li>
+                Narayanan, Sriram SKS, Joseph Moyalan, Andrew Zheng, and Umesh Vaidya.
+                "<a href="https://ieeexplore.ieee.org/abstract/document/11107456/">Density Functions for Dynamic Safe Navigation of Robotic Systems</a>."
+                <em>2025 American Control Conference</em>, 2025, pp. 3694-3699.
+              </li>
+            </ol>
+          </article>
+          <article class="method-card">
+            <h3>Density MPC</h3>
+            <p>
+              The density transport condition is enforced along a predicted
+              trajectory in an MPC setting. This enables safe finite-horizon
+              predictive control with density constraints.
+            </p>
+            <ol class="citation-list">
+              <li>
+                Narayanan, Sriram SKS, Sajad Ahmadi, Javad Mohammadpour Velni, and Umesh Vaidya.
+                "<a href="https://asmedigitalcollection.asme.org/lettersdynsys/article/6/1/011014/1222657">Safety Critical Model Predictive Control Using Discrete-Time Control Density Functions</a>."
+                <em>ASME Letters in Dynamic Systems and Control</em>, vol. 6, no. 1, 2025, article 011014.
+              </li>
+            </ol>
+          </article>
+        </div>
+      </section>
     </main>
 
     <footer>
       <p>
-        Safe Control Density ·
-        <a href="unicycle.html">Non-Holonomic results</a> ·
-        <a href="single-integrator.html">Holonomic results</a> ·
-        <a href="../LICENSE">License</a>
+        Safe Control Density · Website template adapted from
+        <a href="https://github.com/academicpages/academicpages.github.io">academicpages</a>.
       </p>
     </footer>
     <script src="assets/density-demo.js"></script>

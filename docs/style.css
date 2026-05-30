@@ -109,6 +109,12 @@ h1 {
   font-size: 0.98rem;
 }
 
+.affiliation {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.96rem;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -213,6 +219,23 @@ h1 {
 
 .method-card .paper-link {
   margin-top: 12px;
+  font-weight: 700;
+}
+
+.citation-list {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0 0;
+  padding-left: 20px;
+  color: var(--muted);
+  font-size: 0.94rem;
+}
+
+.citation-list li {
+  padding-left: 4px;
+}
+
+.citation-list a {
   font-weight: 700;
 }
 
