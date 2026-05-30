@@ -42,7 +42,9 @@ function densityDemo() {
 
   function compute() {
     const r1 = Number(controls.r1.value);
-    const r2 = Math.max(Number(controls.r2.value), r1 + 0.1);
+    const r2Min = r1 + 0.1;
+    controls.r2.min = r2Min.toFixed(2);
+    const r2 = Math.max(Number(controls.r2.value), r2Min);
     const alpha = Number(controls.alpha.value);
     controls.r2.value = r2.toFixed(2);
     controls.r1Label.textContent = r1.toFixed(2);
