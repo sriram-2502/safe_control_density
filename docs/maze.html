@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Maze Navigation · Safe Control Density</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"></script>
+    <script>
+      const mazeRuns = {
+        wide: {
+          label: "Maze 1",
+          description: "Roomy baseline with a broad route around rectangular wall blocks.",
+          controllers: {
+            feedback: { label: "Density feedback", status: "success", file: "maze_wide_density_feedback_success.mp4", steps: 288, clearance: "0.040" },
+            filter: { label: "Density filter", status: "success", file: "maze_wide_density_filter_success.mp4", steps: 274, clearance: "0.040" },
+            mpc: { label: "Density MPC", status: "success", file: "maze_wide_density_mpc_success.mp4", steps: 96, clearance: "0.039" }
+          }
+        },
+        wide_s: {
+          label: "Maze 2",
+          description: "S-style route with open turns and interior clutter.",
+          controllers: {
+            feedback: { label: "Density feedback", status: "success", file: "maze_wide_s_density_feedback_success.mp4", steps: 265, clearance: "0.019" },
+            filter: { label: "Density filter", status: "success", file: "maze_wide_s_density_filter_success.mp4", steps: 341, clearance: "0.034" },
+            mpc: { label: "Density MPC", status: "success", file: "maze_wide_s_density_mpc_success.mp4", steps: 142, clearance: "0.022" }
+          }
+        },
+        multi_room: {
+          label: "Maze 3",
+          description: "Room-to-room route with several rectangular wall blocks.",
+          controllers: {
+            feedback: { label: "Density feedback", status: "success", file: "maze_multi_room_density_feedback_success.mp4", steps: 288, clearance: "0.040" },
+            filter: { label: "Density filter", status: "success", file: "maze_multi_room_density_filter_success.mp4", steps: 199, clearance: "0.040" },
+            mpc: { label: "Density MPC", status: "success", file: "maze_multi_room_density_mpc_success.mp4", steps: 71, clearance: "0.040" }
+          }
+        },
+        rooms: {
+          label: "Maze 4",
+          description: "Dense multi-room layout; the one-step filter collision highlights greedy local safety.",
+          controllers: {
+            feedback: { label: "Density feedback", status: "success", file: "maze_rooms_density_feedback_success.mp4", steps: 312, clearance: "0.019" },
+            filter: { label: "Density filter", status: "collision", file: "maze_rooms_density_filter_collision.mp4", steps: 204, clearance: "-0.009" },
+            mpc: { label: "Density MPC", status: "success", file: "maze_rooms_density_mpc_success.mp4", steps: 151, clearance: "0.002" }
+          }
+        },
+        narrow_s: {
+          label: "Maze 5",
+          description: "Longer S-style stress route with two-cell-wide corridors.",
+          controllers: {
+            feedback: { label: "Density feedback", status: "success", file: "maze_narrow_s_density_feedback_success.mp4", steps: 386, clearance: "0.018" },
+            filter: { label: "Density filter", status: "success", file: "maze_narrow_s_density_filter_success.mp4", steps: 533, clearance: "0.034" },
+            mpc: { label: "Density MPC", status: "success", file: "maze_narrow_s_density_mpc_success.mp4", steps: 221, clearance: "0.022" }
+          }
+        },
+        clutter_s: {
+          label: "Maze 6",
+          description: "S-style route with additional interior clutter blocks.",
+          controllers: {
+            feedback: { label: "Density feedback", status: "success", file: "maze_clutter_s_density_feedback_success.mp4", steps: 290, clearance: "0.019" },
+            filter: { label: "Density filter", status: "success", file: "maze_clutter_s_density_filter_success.mp4", steps: 385, clearance: "0.034" },
+            mpc: { label: "Density MPC", status: "success", file: "maze_clutter_s_density_mpc_success.mp4", steps: 151, clearance: "0.023" }
+          }
+        },
+        clutter_rooms: {
+          label: "Maze 7",
+          description: "Room-like route with cluttered interior partitions.",
+          controllers: {
+            feedback: { label: "Density feedback", status: "success", file: "maze_clutter_rooms_density_feedback_success.mp4", steps: 305, clearance: "0.019" },
+            filter: { label: "Density filter", status: "success", file: "maze_clutter_rooms_density_filter_success.mp4", steps: 349, clearance: "0.034" },
+            mpc: { label: "Density MPC", status: "success", file: "maze_clutter_rooms_density_mpc_success.mp4", steps: 156, clearance: "0.022" }
+          }
+        },
+        clutter_zigzag: {
+          label: "Maze 8",
+          description: "Zig-zag route with staggered wall blocks.",
+          controllers: {
+            feedback: { label: "Density feedback", status: "success", file: "maze_clutter_zigzag_density_feedback_success.mp4", steps: 314, clearance: "0.019" },
+            filter: { label: "Density filter", status: "success", file: "maze_clutter_zigzag_density_filter_success.mp4", steps: 357, clearance: "0.034" },
+            mpc: { label: "Density MPC", status: "success", file: "maze_clutter_zigzag_density_mpc_success.mp4", steps: 170, clearance: "0.023" }
+          }
+        }
+      };
+
+      function setMazeRun() {
+        const mazeKey = document.getElementById("maze-select").value;
+        const controllerKey = document.getElementById("controller-select").value;
+        const maze = mazeRuns[mazeKey];
+        const run = maze.controllers[controllerKey];
+        const source = document.getElementById("maze-video-source");
+        const video = document.getElementById("maze-video");
+        source.src = `assets/videos/${run.file}`;
+        video.load();
+        video.play().catch(() => {});
+        document.getElementById("maze-run-title").textContent = `${maze.label} - ${run.label}`;
+        document.getElementById("maze-run-description").textContent = maze.description;
+        document.getElementById("maze-run-status").textContent = run.status;
+        document.getElementById("maze-run-status").className = `status-pill ${run.status}`;
+        document.getElementById("maze-run-steps").textContent = run.steps;
+        document.getElementById("maze-run-clearance").textContent = run.clearance;
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: "$$", right: "$$", display: true },
+            { left: "\\(", right: "\\)", display: false }
+          ],
+          throwOnError: false
+        });
+        document.getElementById("maze-select").addEventListener("change", setMazeRun);
+        document.getElementById("controller-select").addEventListener("change", setMazeRun);
+        setMazeRun();
+      });
+    </script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="index.html">Safe Control Density</a>
+        <nav class="nav-links" aria-label="Site navigation">
+          <a href="index.html">Home</a>
+          <a href="density-construction.html">Density Construction</a>
+          <a href="single-integrator.html">Holonomic</a>
+          <a href="unicycle.html">Non-Holonomic</a>
+          <a href="autonomous-racing.html">Racing</a>
+          <a href="maze.html">Maze</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <h1>Maze Navigation</h1>
+        <p class="subtitle">
+          Maze navigation using a unicycle model with forward speed and yaw-rate controls. The examples compare density feedback, density filters, and density MPC while following A* waypoints through cluttered layouts with rectangular wall-density obstacles.
+        </p>
+      </section>
+
+      <section class="section">
+        <p class="lead">
+          Pick a maze and density based controller. The orange markers show the waypoint
+          reference, the green curve shows the nominal baseline trajectory, and
+          the blue curve shows the density controller output.
+        </p>
+        <div class="interactive-panel maze-viewer">
+          <div class="control-panel" aria-label="Maze result controls">
+            <label>
+              Maze
+              <select id="maze-select">
+                <option value="wide">Maze 1 - wide</option>
+                <option value="wide_s" selected>Maze 2 - wide S</option>
+                <option value="multi_room">Maze 3 - multi room</option>
+                <option value="rooms">Maze 4 - rooms</option>
+                <option value="narrow_s">Maze 5 - narrow S</option>
+                <option value="clutter_s">Maze 6 - clutter S</option>
+                <option value="clutter_rooms">Maze 7 - clutter rooms</option>
+                <option value="clutter_zigzag">Maze 8 - clutter zig-zag</option>
+              </select>
+            </label>
+            <label>
+              Controller
+              <select id="controller-select">
+                <option value="feedback">Density feedback</option>
+                <option value="filter">Density filter</option>
+                <option value="mpc" selected>Density MPC</option>
+              </select>
+            </label>
+            <div class="run-stats" aria-live="polite">
+              <h3 id="maze-run-title">Maze 2 - Density MPC</h3>
+              <p id="maze-run-description"></p>
+              <dl>
+                <div>
+                  <dt>Status</dt>
+                  <dd><span id="maze-run-status" class="status-pill success">success</span></dd>
+                </div>
+                <div>
+                  <dt>Steps</dt>
+                  <dd id="maze-run-steps">142</dd>
+                </div>
+                <div>
+                  <dt>Min clearance</dt>
+                  <dd id="maze-run-clearance">0.022</dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+          <article class="video-card maze-feature-video">
+            <video id="maze-video" autoplay muted loop playsinline controls preload="metadata">
+              <source id="maze-video-source" src="assets/videos/maze_wide_s_density_mpc_success.mp4" type="video/mp4">
+            </video>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Density Filter vs Density MPC</h2>
+        <p class="lead">
+          Maze 4 is the one default case where the one-step density filter
+          collides while density MPC reaches the goal. The filter is greedy: it
+          enforces a next-step density condition while staying close to the
+          nominal command. In the dense room layout, that local correction is
+          not enough to plan the turn sequence. MPC is predictive: it evaluates
+          a short horizon of future states, so it can trade immediate tracking
+          against future safety and steer through the room.
+        </p>
+        <div class="video-grid two maze-comparison-grid">
+          <article class="video-card">
+            <h3>Maze 4 - Density filter</h3>
+            <video autoplay muted loop playsinline controls preload="metadata">
+              <source src="assets/videos/maze_rooms_density_filter_collision.mp4" type="video/mp4">
+            </video>
+            <p>One-step filter: local correction collides in the dense room layout.</p>
+          </article>
+          <article class="video-card">
+            <h3>Maze 4 - Density MPC</h3>
+            <video autoplay muted loop playsinline controls preload="metadata">
+              <source src="assets/videos/maze_rooms_density_mpc_success.mp4" type="video/mp4">
+            </video>
+            <p>Predictive MPC: succeeds by reasoning over a short future horizon.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>All Maze Configurations</h2>
+        <p class="lead">
+          Each row shows density feedback, density filter, and density MPC for a
+          fixed maze. All examples use the same sparse, clearance-aware waypoint
+          profile; Maze 4 highlights the filter failure case.
+        </p>
+
+        <div class="maze-gallery">
+          <section class="maze-row">
+            <h3>Maze 1 - wide</h3>
+            <div class="video-grid three">
+              <article class="video-card"><h3>Density feedback</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/maze_wide_density_feedback_success.mp4" type="video/mp4"></video></article>
+              <article class="video-card"><h3>Density filter</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/maze_wide_density_filter_success.mp4" type="video/mp4"></video></article>
+              <article class="video-card"><h3>Density MPC</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/maze_wide_density_mpc_success.mp4" type="video/mp4"></video></article>
+            </div>
+          </section>
+
+          <section class="maze-row">
+            <h3>Maze 2 - wide S</h3>
+            <div class="video-grid three">
+              <article class="video-card"><h3>Density feedback</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/maze_wide_s_density_feedback_success.mp4" type="video/mp4"></video></article>
+              <article class="video-card"><h3>Density filter</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/maze_wide_s_density_filter_success.mp4" type="video/mp4"></video></article>
+              <article class="video-card"><h3>Density MPC</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/maze_wide_s_density_mpc_success.mp4" type="video/mp4"></video></article>
+            </div>
+          </section>
+
+          <section class="maze-row">
+            <h3>Maze 3 - multi room</h3>
+            <div class="video-grid three">
+              <article class="video-card"><h3>Density feedback</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/maze_multi_room_density_feedback_success.mp4" type="video/mp4"></video></article>
+              <article class="video-card"><h3>Density filter</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/maze_multi_room_density_filter_success.mp4" type="video/mp4"></video></article>
+              <article class="video-card"><h3>Density MPC</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/maze_multi_room_density_mpc_success.mp4" type="video/mp4"></video></article>
+            </div>
+          </section>
+
+          <section class="maze-row">
+            <h3>Maze 4 - rooms</h3>
+            <div class="video-grid three">
+              <article class="video-card"><h3>Density feedback</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/maze_rooms_density_feedback_success.mp4" type="video/mp4"></video></article>
+              <article class="video-card"><h3>Density filter collision</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/maze_rooms_density_filter_collision.mp4" type="video/mp4"></video></article>
+              <article class="video-card"><h3>Density MPC</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/maze_rooms_density_mpc_success.mp4" type="video/mp4"></video></article>
+            </div>
+          </section>
+
+          <section class="maze-row">
+            <h3>Maze 5 - narrow S</h3>
+            <div class="video-grid three">
+              <article class="video-card"><h3>Density feedback</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/maze_narrow_s_density_feedback_success.mp4" type="video/mp4"></video></article>
+              <article class="video-card"><h3>Density filter</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/maze_narrow_s_density_filter_success.mp4" type="video/mp4"></video></article>
+              <article class="video-card"><h3>Density MPC</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/maze_narrow_s_density_mpc_success.mp4" type="video/mp4"></video></article>
+            </div>
+          </section>
+
+          <section class="maze-row">
+            <h3>Maze 6 - clutter S</h3>
+            <div class="video-grid three">
+              <article class="video-card"><h3>Density feedback</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/maze_clutter_s_density_feedback_success.mp4" type="video/mp4"></video></article>
+              <article class="video-card"><h3>Density filter</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/maze_clutter_s_density_filter_success.mp4" type="video/mp4"></video></article>
+              <article class="video-card"><h3>Density MPC</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/maze_clutter_s_density_mpc_success.mp4" type="video/mp4"></video></article>
+            </div>
+          </section>
+
+          <section class="maze-row">
+            <h3>Maze 7 - clutter rooms</h3>
+            <div class="video-grid three">
+              <article class="video-card"><h3>Density feedback</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/maze_clutter_rooms_density_feedback_success.mp4" type="video/mp4"></video></article>
+              <article class="video-card"><h3>Density filter</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/maze_clutter_rooms_density_filter_success.mp4" type="video/mp4"></video></article>
+              <article class="video-card"><h3>Density MPC</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/maze_clutter_rooms_density_mpc_success.mp4" type="video/mp4"></video></article>
+            </div>
+          </section>
+
+          <section class="maze-row">
+            <h3>Maze 8 - clutter zig-zag</h3>
+            <div class="video-grid three">
+              <article class="video-card"><h3>Density feedback</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/maze_clutter_zigzag_density_feedback_success.mp4" type="video/mp4"></video></article>
+              <article class="video-card"><h3>Density filter</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/maze_clutter_zigzag_density_filter_success.mp4" type="video/mp4"></video></article>
+              <article class="video-card"><h3>Density MPC</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/maze_clutter_zigzag_density_mpc_success.mp4" type="video/mp4"></video></article>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

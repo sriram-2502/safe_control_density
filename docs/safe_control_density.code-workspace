@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"path": "../../mpc_cdf"
+		},
+		{
+			"path": "../../car-racing"
+		}
+	],
+	"settings": {
+		"ROS2.distro": "humble"
+	}
+}

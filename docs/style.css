@@ -555,6 +555,98 @@ pre {
   box-shadow: 0 10px 28px rgb(18 32 54 / 8%);
 }
 
+.maze-viewer {
+  grid-template-columns: 300px minmax(0, 1fr);
+}
+
+.maze-feature-video video,
+.maze-comparison-grid video,
+.maze-gallery video {
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  object-position: center;
+}
+
+.maze-feature-video video {
+  aspect-ratio: 16 / 8.5;
+}
+
+.run-stats {
+  display: grid;
+  gap: 12px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+
+.run-stats h3 {
+  margin: 0;
+  font-size: 1.02rem;
+}
+
+.run-stats p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.run-stats dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.run-stats dl div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.run-stats dt {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.run-stats dd {
+  margin: 0;
+  font-weight: 750;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #e8f5ee;
+  color: #166534;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.status-pill.collision {
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.maze-gallery {
+  display: grid;
+  gap: 36px;
+  margin-top: 24px;
+}
+
+.maze-row {
+  display: grid;
+  gap: 14px;
+}
+
+.maze-row > h3 {
+  margin: 0;
+  text-align: center;
+  font-size: 1.22rem;
+}
+
 .gallery h3 {
   margin-bottom: 16px;
 }

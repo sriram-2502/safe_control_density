@@ -111,6 +111,30 @@ moving obstacle cars.
 
 Full results: [racing examples](examples/racing/README.md)
 
+### Maze Navigation
+
+The maze example is a pure-Python hierarchical navigation testbed for a
+unicycle robot. It plans with A*, converts maze walls into merged rectangular
+obstacles, wraps rectangle clearance in a smooth density bump, and compares
+density feedback, a one-step density filter, and density MPC across eight
+two-cell-gap maze scenarios.
+
+<table>
+<tr>
+<td align="center"><b>Maze 1 - Density feedback</b><br><img src="examples/maze/animations/maze_wide_density_feedback_success.gif" width="300" alt="Maze 1 density feedback"></td>
+<td align="center"><b>Maze 1 - Density filter</b><br><img src="examples/maze/animations/maze_wide_density_filter_success.gif" width="300" alt="Maze 1 density filter"></td>
+<td align="center"><b>Maze 1 - Density MPC</b><br><img src="examples/maze/animations/maze_wide_density_mpc_success.gif" width="300" alt="Maze 1 density MPC"></td>
+</tr>
+<tr>
+<td align="center"><b>Maze 2 - Density feedback</b><br><img src="examples/maze/animations/maze_wide_s_density_feedback_success.gif" width="300" alt="Maze 2 density feedback"></td>
+<td align="center"><b>Maze 2 - Density filter</b><br><img src="examples/maze/animations/maze_wide_s_density_filter_success.gif" width="300" alt="Maze 2 density filter"></td>
+<td align="center"><b>Maze 2 - Density MPC</b><br><img src="examples/maze/animations/maze_wide_s_density_mpc_success.gif" width="300" alt="Maze 2 density MPC"></td>
+</tr>
+</table>
+
+Full results, including all GIF/MP4 files and the current success matrix:
+[maze examples](examples/maze/README.md)
+
 ## Unicycle Safety-Filter Comparison
 
 The unicycle example highlights a useful limitation of one-step discrete
@@ -180,6 +204,7 @@ making future position depend on the current steering command.
 - `examples/single_integrator/`: point-mass density feedback/filter and CLF-CBF examples
 - `examples/unicycle/`: unicycle density controllers, CBF controllers, and sensing-radius sweeps
 - `examples/racing/`: racing density MPC-CDF example
+- `examples/maze/`: A*-planned maze navigation with rectangular wall-density obstacles
 
 ## Notes
 
