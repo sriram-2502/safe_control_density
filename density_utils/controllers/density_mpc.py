@@ -61,6 +61,24 @@ def _unpack(z, horizon, control_dim, num_obstacles):
     return controls, slack
 
 
+def _obstacle_schedule(obstacles, horizon):
+    obstacles = list(obstacles)
+    if not obstacles:
+        return [[] for _ in range(horizon + 1)], 0
+    first = obstacles[0]
+    if isinstance(first, (list, tuple)):
+        schedule = [list(row) for row in obstacles]
+        if len(schedule) == horizon:
+            schedule.append(list(schedule[-1]))
+        if len(schedule) != horizon + 1:
+            raise ValueError("moving-obstacle schedules must have horizon + 1 entries")
+        num_obstacles = len(schedule[0])
+        if any(len(row) != num_obstacles for row in schedule):
+            raise ValueError("all moving-obstacle schedule rows must have the same length")
+        return schedule, num_obstacles
+    return [obstacles for _ in range(horizon + 1)], len(obstacles)
+
+
 def solve_density_mpc(
     x,
     goal,
@@ -130,7 +148,6 @@ def _solve_density_mpc_scipy(
     """
     x = np.asarray(x, dtype=float)
     goal = np.asarray(goal, dtype=float)
-    obstacles = list(obstacles)
     horizon = int(horizon)
     if horizon <= 0:
         raise ValueError("horizon must be positive")
@@ -144,7 +161,7 @@ def _solve_density_mpc_scipy(
     bounds = _control_bounds(u_min, u_max, control_dim)
     u_nom_seq = _as_control_sequence(u_nom_arr, horizon, control_dim, bounds)
 
-    num_obstacles = len(obstacles)
+    obstacle_schedule, num_obstacles = _obstacle_schedule(obstacles, horizon)
     w_u = _as_weight_matrix(control_weight, control_dim)
     w_du = _as_weight_matrix(control_rate_weight, control_dim)
     w_x = _as_weight_matrix(state_weight, x.size)
@@ -206,17 +223,19 @@ def _solve_density_mpc_scipy(
         values = []
         for k in range(horizon):
             div_value = _eval_scalar(divergence, states[k], default=0.0)
-            for j, obstacle in enumerate(obstacles):
+            for j in range(num_obstacles):
+                obstacle = obstacle_schedule[k][j]
+                obstacle_next = obstacle_schedule[k + 1][j]
                 rho = max(
                     _density_for_obstacle(density_fn, states[k], goal, alpha, obstacle),
                     float(min_density),
                 )
-                rho_next = _density_for_obstacle(density_fn, states[k + 1], goal, alpha, obstacle)
+                rho_next = _density_for_obstacle(density_fn, states[k + 1], goal, alpha, obstacle_next)
                 density_transport = rho_next - rho + dt * div_value * rho
                 values.append(density_transport - dt * slack[k, j] * rho)
         return np.asarray(values, dtype=float)
 
-    constraints = {"type": "ineq", "fun": density_constraints}
+    constraints = () if num_obstacles == 0 else {"type": "ineq", "fun": density_constraints}
 
     opt_bounds = bounds * horizon + [(0.0, None)] * (horizon * num_obstacles)
 
@@ -235,7 +254,7 @@ def _solve_density_mpc_scipy(
             options={"ftol": 1e-8, "maxiter": 120, "disp": False},
         )
 
-    z = sol.x if sol.success else z0
+    z = sol.x if np.all(np.isfinite(sol.x)) else z0
     controls, slack = _unpack(z, horizon, control_dim, num_obstacles)
     controls = np.vstack([_clip_to_bounds(u, bounds) for u in controls])
     slack = np.maximum(slack, 0.0)

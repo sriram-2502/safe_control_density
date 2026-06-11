@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+
+.vscode/
+
+# Oversized generated animations. Prefer compact MP4 exports for these cases.
+examples/multi_agent/animations/density_filter/*crossing6*density_filter_velocity_obstacle.gif
+examples/multi_agent/animations/density_filter/*swap8_opposite*density_filter_collision_cone.gif
+examples/multi_agent/animations/density_filter/*swap8_opposite*density_filter_velocity_obstacle.gif

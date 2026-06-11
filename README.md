@@ -97,6 +97,82 @@ the reactive-FOV visualization.
 
 Full results: [unicycle examples](examples/unicycle/README.md)
 
+### Multi-Agent Unicycle
+
+The multi-agent examples compare reactive density feedback, collision cone
+density feedback, and velocity-obstacle density feedback for teams of unicycle
+agents swapping goals through crossing and ring-exchange layouts. Each
+controller script is self-contained in its density construction and control law;
+shared scenario setup lives in `examples/multi_agent/density_feedback/_config.py`,
+and shared animation plotting lives in `examples/multi_agent/_plotting.py`.
+The same nominal interaction models are also wrapped in density-filter and
+density-MPC examples under `examples/multi_agent/density_filter/` and
+`examples/multi_agent/density_mpc/`.
+
+Run the two implemented controllers with:
+
+```bash
+python examples/multi_agent/density_feedback/reactive.py --scenario crossing6
+python examples/multi_agent/density_feedback/collision_cone.py --scenario crossing6
+python examples/multi_agent/density_feedback/velocity_obstacle.py --scenario crossing6
+```
+
+Representative animations:
+
+<table>
+<tr>
+<td align="center"><b>Crossing 6 - Reactive density feedback</b><br><img src="examples/multi_agent/animations/density_feedback/multi_agent_unicycle_crossing6_reactive_density_feedback.gif" width="300" alt="Multi-agent crossing6 reactive density feedback"></td>
+<td align="center"><b>Crossing 6 - Collision cone density feedback</b><br><img src="examples/multi_agent/animations/density_feedback/multi_agent_unicycle_crossing6_collision_cone_density_feedback.gif" width="300" alt="Multi-agent crossing6 collision cone density feedback"></td>
+<td align="center"><b>Crossing 6 - Velocity obstacle density feedback</b><br><img src="examples/multi_agent/animations/density_feedback/multi_agent_unicycle_crossing6_velocity_obstacle_density_feedback.gif" width="300" alt="Multi-agent crossing6 velocity obstacle density feedback"></td>
+</tr>
+<tr>
+<td align="center"><b>Opposite swap 8 - Reactive density feedback</b><br><img src="examples/multi_agent/animations/density_feedback/multi_agent_unicycle_swap8_opposite_reactive_density_feedback.gif" width="300" alt="Multi-agent opposite swap8 reactive density feedback"></td>
+<td align="center"><b>Opposite swap 8 - Collision cone density feedback</b><br><img src="examples/multi_agent/animations/density_feedback/multi_agent_unicycle_swap8_opposite_collision_cone_density_feedback.gif" width="300" alt="Multi-agent opposite swap8 collision cone density feedback"></td>
+<td align="center"><b>Opposite swap 8 - Velocity obstacle density feedback</b><br><img src="examples/multi_agent/animations/density_feedback/multi_agent_unicycle_swap8_opposite_velocity_obstacle_density_feedback.gif" width="300" alt="Multi-agent opposite swap8 velocity obstacle density feedback"></td>
+</tr>
+</table>
+
+Available scenarios are `crossing2`, `crossing4`, `crossing6`, `swap8`,
+`swap8_opposite`, `swap10`, and `swap12`. Generated GIFs are saved in
+family subfolders under `examples/multi_agent/animations/`.
+
+Full results: [multi-agent examples](examples/multi_agent/README.md)
+
+### Dynamic Obstacles
+
+The dynamic-obstacle examples test one unicycle robot moving through exogenous
+moving disk obstacles. They compare reactive bump density, collision-cone
+density, and velocity-obstacle density under density feedback and one-step
+density filtering. The scenarios include a random-flow traversal, a
+closing-in obstacle setup, a denser cluttered flow, and a streaming-flow route
+that spawns randomized moving obstacles ahead of the robot.
+
+```bash
+python examples/dynamic_obstacles/density_feedback/velocity_obstacle.py --scenario random_flow
+python examples/dynamic_obstacles/density_filter/velocity_obstacle.py --scenario closing_in
+```
+
+<table>
+<tr>
+<td align="center"><b>Random flow - VO feedback</b><br><img src="examples/dynamic_obstacles/animations/density_feedback/dynamic_obstacles_random_flow_velocity_obstacle_density_feedback.gif" width="300" alt="Random flow velocity-obstacle density feedback"></td>
+<td align="center"><b>Random flow - VO filter</b><br><img src="examples/dynamic_obstacles/animations/density_filter/dynamic_obstacles_random_flow_velocity_obstacle_density_filter.gif" width="300" alt="Random flow velocity-obstacle density filter"></td>
+</tr>
+<tr>
+<td align="center"><b>Closing in - collision cone feedback</b><br><img src="examples/dynamic_obstacles/animations/density_feedback/dynamic_obstacles_closing_in_collision_cone_density_feedback.gif" width="300" alt="Closing-in collision-cone density feedback"></td>
+<td align="center"><b>Closing in - collision cone filter</b><br><img src="examples/dynamic_obstacles/animations/density_filter/dynamic_obstacles_closing_in_collision_cone_density_filter.gif" width="300" alt="Closing-in collision-cone density filter"></td>
+</tr>
+<tr>
+<td align="center"><b>Dense flow - VO feedback</b><br><img src="examples/dynamic_obstacles/animations/density_feedback/dynamic_obstacles_dense_flow_velocity_obstacle_density_feedback.gif" width="300" alt="Dense-flow velocity-obstacle density feedback"></td>
+<td align="center"><b>Dense flow - VO filter</b><br><img src="examples/dynamic_obstacles/animations/density_filter/dynamic_obstacles_dense_flow_velocity_obstacle_density_filter.gif" width="300" alt="Dense-flow velocity-obstacle density filter"></td>
+</tr>
+<tr>
+<td align="center"><b>Streaming flow - VO feedback</b><br><img src="examples/dynamic_obstacles/animations/density_feedback/dynamic_obstacles_streaming_flow_velocity_obstacle_density_feedback.gif" width="300" alt="Streaming-flow velocity-obstacle density feedback"></td>
+<td align="center"><b>Streaming flow - VO filter</b><br><img src="examples/dynamic_obstacles/animations/density_filter/dynamic_obstacles_streaming_flow_velocity_obstacle_density_filter.gif" width="300" alt="Streaming-flow velocity-obstacle density filter"></td>
+</tr>
+</table>
+
+Full results: [dynamic-obstacle examples](examples/dynamic_obstacles/README.md)
+
 ### Racing
 
 The racing example uses a track-coordinate vehicle model with steering and
@@ -203,6 +279,8 @@ making future position depend on the current steering command.
 - `density_utils/`: core density functions, dynamics, controllers, and plotting utilities
 - `examples/single_integrator/`: point-mass density feedback/filter and CLF-CBF examples
 - `examples/unicycle/`: unicycle density controllers, CBF controllers, and sensing-radius sweeps
+- `examples/multi_agent/`: multi-agent unicycle density feedback comparisons
+- `examples/dynamic_obstacles/`: moving-obstacle unicycle density feedback/filter examples
 - `examples/racing/`: racing density MPC-CDF example
 - `examples/maze/`: A*-planned maze navigation with rectangular wall-density obstacles
 
