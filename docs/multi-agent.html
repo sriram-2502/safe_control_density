@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Multi-Agent Navigation · Safe Control Density</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"></script>
+    <script>
+      const methodLabels = {
+        reactive: "Reactive bump",
+        collision_cone: "Collision cone",
+        velocity_obstacle: "Velocity obstacle"
+      };
+
+      const scenarioLabels = {
+        crossing2: "Crossing 2",
+        crossing4: "Crossing 4",
+        crossing6: "Crossing 6",
+        swap8: "Swap 8",
+        swap8_opposite: "Swap 8 opposite",
+        swap10: "Swap 10",
+        swap12: "Swap 12"
+      };
+
+      const multiAgentRuns = {
+        density_feedback: {
+          label: "Density feedback",
+          methods: {
+            reactive: {
+              crossing2: "multi_agent_unicycle_crossing2_reactive_density_feedback.mp4",
+              crossing4: "multi_agent_unicycle_crossing4_reactive_density_feedback.mp4",
+              crossing6: "multi_agent_unicycle_crossing6_reactive_density_feedback.mp4",
+              swap8: "multi_agent_unicycle_swap8_reactive_density_feedback.mp4",
+              swap8_opposite: "multi_agent_unicycle_swap8_opposite_reactive_density_feedback.mp4",
+              swap10: "multi_agent_unicycle_swap10_reactive_density_feedback.mp4",
+              swap12: "multi_agent_unicycle_swap12_reactive_density_feedback.mp4"
+            },
+            collision_cone: {
+              crossing2: "multi_agent_unicycle_crossing2_collision_cone_density_feedback.mp4",
+              crossing4: "multi_agent_unicycle_crossing4_collision_cone_density_feedback.mp4",
+              crossing6: "multi_agent_unicycle_crossing6_collision_cone_density_feedback.mp4",
+              swap8: "multi_agent_unicycle_swap8_collision_cone_density_feedback.mp4",
+              swap8_opposite: "multi_agent_unicycle_swap8_opposite_collision_cone_density_feedback.mp4",
+              swap10: "multi_agent_unicycle_swap10_collision_cone_density_feedback.mp4",
+              swap12: "multi_agent_unicycle_swap12_collision_cone_density_feedback.mp4"
+            },
+            velocity_obstacle: {
+              crossing2: "multi_agent_unicycle_crossing2_velocity_obstacle_density_feedback.mp4",
+              crossing4: "multi_agent_unicycle_crossing4_velocity_obstacle_density_feedback.mp4",
+              crossing6: "multi_agent_unicycle_crossing6_velocity_obstacle_density_feedback.mp4",
+              swap8: "multi_agent_unicycle_swap8_velocity_obstacle_density_feedback.mp4",
+              swap8_opposite: "multi_agent_unicycle_swap8_opposite_velocity_obstacle_density_feedback.mp4",
+              swap10: "multi_agent_unicycle_swap10_velocity_obstacle_density_feedback.mp4",
+              swap12: "multi_agent_unicycle_swap12_velocity_obstacle_density_feedback.mp4"
+            }
+          }
+        },
+        density_filter: {
+          label: "Density filter",
+          methods: {
+            reactive: {
+              crossing2: "multi_agent_unicycle_crossing2_density_filter_reactive.mp4",
+              crossing4: "multi_agent_unicycle_crossing4_density_filter_reactive.mp4",
+              crossing6: "multi_agent_unicycle_crossing6_density_filter_reactive.mp4",
+              swap8_opposite: "multi_agent_unicycle_swap8_opposite_density_filter_reactive.mp4"
+            },
+            collision_cone: {
+              crossing2: "multi_agent_unicycle_crossing2_density_filter_collision_cone.mp4",
+              crossing4: "multi_agent_unicycle_crossing4_density_filter_collision_cone.mp4",
+              crossing6: "multi_agent_unicycle_crossing6_density_filter_collision_cone.mp4",
+              swap8_opposite: "multi_agent_unicycle_swap8_opposite_density_filter_collision_cone.mp4"
+            },
+            velocity_obstacle: {
+              crossing2: "multi_agent_unicycle_crossing2_density_filter_velocity_obstacle.mp4",
+              crossing4: "multi_agent_unicycle_crossing4_density_filter_velocity_obstacle.mp4",
+              crossing6: "multi_agent_unicycle_crossing6_density_filter_velocity_obstacle.mp4",
+              swap8_opposite: "multi_agent_unicycle_swap8_opposite_density_filter_velocity_obstacle.mp4"
+            }
+          }
+        }
+      };
+
+      function fillScenarioOptions() {
+        const controller = document.getElementById("ma-controller").value;
+        const method = document.getElementById("ma-method").value;
+        const scenarioSelect = document.getElementById("ma-scenario");
+        const current = scenarioSelect.value;
+        const runs = multiAgentRuns[controller].methods[method];
+        scenarioSelect.innerHTML = "";
+        Object.keys(runs).forEach((scenario) => {
+          const option = document.createElement("option");
+          option.value = scenario;
+          option.textContent = scenarioLabels[scenario];
+          scenarioSelect.appendChild(option);
+        });
+        if (runs[current]) {
+          scenarioSelect.value = current;
+        }
+      }
+
+      function setMultiAgentRun() {
+        fillScenarioOptions();
+        const controllerKey = document.getElementById("ma-controller").value;
+        const methodKey = document.getElementById("ma-method").value;
+        const scenarioKey = document.getElementById("ma-scenario").value;
+        const controller = multiAgentRuns[controllerKey];
+        const file = controller.methods[methodKey][scenarioKey];
+        const source = document.getElementById("ma-video-source");
+        const video = document.getElementById("ma-video");
+        source.src = `assets/videos/${file}`;
+        video.load();
+        video.play().catch(() => {});
+        document.getElementById("ma-run-title").textContent =
+          `${scenarioLabels[scenarioKey]} - ${controller.label} - ${methodLabels[methodKey]}`;
+        document.getElementById("ma-run-description").textContent =
+          controllerKey === "density_feedback"
+            ? "Planar density command mapped to unicycle speed and yaw-rate."
+            : "One-step constrained solve using the exact unicycle update.";
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: "$$", right: "$$", display: true },
+            { left: "\\(", right: "\\)", display: false }
+          ],
+          throwOnError: false
+        });
+        ["ma-controller", "ma-method", "ma-scenario"].forEach((id) => {
+          document.getElementById(id).addEventListener("change", setMultiAgentRun);
+        });
+        setMultiAgentRun();
+      });
+    </script>
+  </head>
+  <body class="multi-agent-page">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="index.html">Safe Control Density</a>
+        <nav class="nav-links" aria-label="Site navigation">
+          <a href="index.html">Home</a>
+          <a href="density-construction.html">Density Construction</a>
+          <a href="single-integrator.html">Holonomic</a>
+          <a href="unicycle.html">Non-Holonomic</a>
+          <a href="autonomous-racing.html">Racing</a>
+          <a href="maze.html">Maze</a>
+          <a href="multi-agent.html">Multi-Agent</a>
+          <a href="dynamic-obstacles.html">Dynamic Obstacles</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <h1>Multi-Agent Navigation</h1>
+        <p class="subtitle">
+          Multi-agent unicycle navigation with density feedback and density
+          filters. The examples compare position-only bump density,
+          collision-cone density, and velocity-obstacle density.
+        </p>
+      </section>
+
+      <section class="section">
+        <h2>System Dynamics</h2>
+        <p class="lead">
+          Each agent is a unicycle with state \(x_i=[p_{x,i},p_{y,i},\theta_i]\)
+          and controls \(u_i=[v_i,\omega_i]\). The density construction is
+          pairwise: every other agent contributes a smooth obstacle term.
+        </p>
+        <div class="math-card">
+          $$
+          \dot p_{x,i}=v_i\cos\theta_i,\qquad
+          \dot p_{y,i}=v_i\sin\theta_i,\qquad
+          \dot\theta_i=\omega_i
+          $$
+          $$
+          \rho_i(x_i)=
+          \frac{\prod_{j\ne i}\Phi_{ij}(p_i,p_j,v_i,v_j)}
+          {\left(\|p_i-p_i^\star\|^2+w_\theta\,\mathrm{wrap}(\theta_i-\theta_i^\star)^2\right)^\alpha}
+          $$
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Density Constructions</h2>
+        <p class="lead">
+          The baseline only sees distance. Collision-cone and velocity-obstacle
+          density also use relative velocity, so agents react differently when
+          another agent is crossing, approaching, or moving away.
+        </p>
+
+        <div class="method-grid three stacked-methods">
+          <article class="method-card">
+            <h3>Reactive bump</h3>
+            <p>
+              A neighbor is a circular bump obstacle. This is simple and fast,
+              but it cannot tell whether the neighbor is actually moving toward
+              a future collision.
+            </p>
+            <div class="math-card">
+              $$\Phi_{ij}=\beta(\|p_i-p_j\|;r_{\mathrm{safe}},r_{\mathrm{sense}})$$
+            </div>
+          </article>
+
+          <article class="method-card diagram-card">
+            <h3>Collision cone</h3>
+            <svg class="mini-diagram" viewBox="0 0 260 180" role="img" aria-label="Collision cone diagram">
+              <defs>
+                <marker id="arrow-blue" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                  <path d="M0,0 L8,4 L0,8 Z" fill="#276ef1"></path>
+                </marker>
+                <marker id="arrow-orange" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                  <path d="M0,0 L8,4 L0,8 Z" fill="#f97316"></path>
+                </marker>
+              </defs>
+              <path d="M72 112 L208 52 L210 172 Z" fill="#fef3c7" stroke="#d97706" stroke-width="2"></path>
+              <circle cx="72" cy="112" r="16" fill="#276ef1"></circle>
+              <circle cx="198" cy="112" r="18" fill="#9ca3af" stroke="#374151"></circle>
+              <line x1="72" y1="112" x2="132" y2="82" stroke="#276ef1" stroke-width="4" marker-end="url(#arrow-blue)"></line>
+              <line x1="198" y1="112" x2="166" y2="100" stroke="#f97316" stroke-width="4" marker-end="url(#arrow-orange)"></line>
+              <text x="48" y="145">agent i</text>
+              <text x="170" y="145">agent j</text>
+              <text x="140" y="42">collision cone</text>
+            </svg>
+            <p>
+              The cone is built from relative position and relative velocity.
+              If the relative velocity points into the cone, the density term
+              activates before the disks touch. We keep the usual spatial bump
+              and multiply it by a second smooth bump on the collision-cone
+              margin.
+            </p>
+            <div class="math-card">
+              $$
+              \Phi_{ij}^{\mathrm{cc}}
+              =\beta_{\mathrm{space}}(\|p_i-p_j\|)
+              \,\beta_{\mathrm{vel}}(h_{\mathrm{cc}})
+              $$
+              $$
+              h_{\mathrm{cc}}=p^\top v+\|p\|\|v\|\cos\phi
+              $$
+            </div>
+          </article>
+
+          <article class="method-card diagram-card">
+            <h3>Velocity obstacle</h3>
+            <svg class="mini-diagram" viewBox="0 0 260 180" role="img" aria-label="Velocity obstacle diagram">
+              <defs>
+                <marker id="arrow-vo" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                  <path d="M0,0 L8,4 L0,8 Z" fill="#276ef1"></path>
+                </marker>
+              </defs>
+              <line x1="34" y1="140" x2="232" y2="140" stroke="#9ca3af"></line>
+              <line x1="54" y1="158" x2="54" y2="24" stroke="#9ca3af"></line>
+              <path d="M92 124 L218 66 L204 150 Z" fill="#fee2e2" stroke="#dc2626" stroke-width="2"></path>
+              <line x1="92" y1="124" x2="166" y2="74" stroke="#276ef1" stroke-width="4" marker-end="url(#arrow-vo)"></line>
+              <circle cx="92" cy="124" r="5" fill="#111827"></circle>
+              <text x="108" y="118">candidate velocity</text>
+              <text x="145" y="58">unsafe VO</text>
+              <text x="184" y="166">v_x</text>
+              <text x="30" y="42">v_y</text>
+            </svg>
+            <p>
+              Velocity obstacles work directly in velocity space. Candidate
+              velocities inside the cone would produce a future collision, so
+              the density pushes the command toward a cone boundary. As with
+              collision cones, the final obstacle term is a spatial bump times
+              a smooth bump on the velocity-obstacle margin.
+            </p>
+            <div class="math-card">
+              $$
+              \Phi_{ij}^{\mathrm{vo}}
+              =\beta_{\mathrm{space}}(\|p_i-p_j\|)
+              \,\beta_{\mathrm{vel}}(h_{\mathrm{vo}})
+              $$
+              $$
+              h_{\mathrm{vo}}=\max(\mathrm{cross}(\ell,v_{\mathrm{rel}}),\mathrm{cross}(v_{\mathrm{rel}},r))
+              $$
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Interactive Result Viewer</h2>
+        <p class="lead">
+          Select a controller, density construction, and scenario. The feedback
+          controller is fast and smooth because it maps a planar density command
+          to unicycle inputs. The filter solves a one-step constrained unicycle
+          problem at every timestep.
+        </p>
+        <div class="interactive-panel result-viewer">
+          <div class="control-panel" aria-label="Multi-agent result controls">
+            <label>
+              Controller
+              <select id="ma-controller">
+                <option value="density_feedback">Density feedback</option>
+                <option value="density_filter">Density filter</option>
+              </select>
+            </label>
+            <label>
+              Density
+              <select id="ma-method">
+                <option value="reactive">Reactive bump</option>
+                <option value="collision_cone" selected>Collision cone</option>
+                <option value="velocity_obstacle">Velocity obstacle</option>
+              </select>
+            </label>
+            <label>
+              Scenario
+              <select id="ma-scenario"></select>
+            </label>
+            <div class="run-stats" aria-live="polite">
+              <h3 id="ma-run-title"></h3>
+              <p id="ma-run-description"></p>
+            </div>
+          </div>
+          <article class="video-card feature-video">
+            <video id="ma-video" autoplay muted loop playsinline controls preload="metadata">
+              <source id="ma-video-source" src="assets/videos/multi_agent_unicycle_crossing2_collision_cone_density_feedback.mp4" type="video/mp4">
+            </video>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Crossing 2 Comparison Dashboards</h2>
+        <p class="lead">
+          The dashboards replay methods one after another. Completed tracks
+          stay visible, while the active method shows moving triangles. The
+          live plots show each agent's forward speed, yaw rate, and minimum
+          pairwise clearance over time.
+        </p>
+        <div class="video-grid dashboard-grid stacked-dashboard">
+          <article class="video-card wide"><h3>Density feedback methods</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/crossing2_density_feedback_methods.mp4" type="video/mp4"></video></article>
+          <article class="video-card wide"><h3>Density filter methods</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/crossing2_density_filter_methods.mp4" type="video/mp4"></video></article>
+          <article class="video-card wide"><h3>Velocity obstacle: feedback vs filter</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/crossing2_velocity_obstacle_feedback_vs_filter.mp4" type="video/mp4"></video></article>
+          <article class="video-card wide"><h3>Collision cone: feedback vs filter</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/crossing2_collision_cone_feedback_vs_filter.mp4" type="video/mp4"></video></article>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Controller Setups</h2>
+        <p class="lead">
+          The same density constructions can be used in two different control
+          loops. Feedback is fast and direct; the filter is more faithful to
+          the unicycle dynamics because it solves over the actual controls.
+        </p>
+        <div class="maze-gallery">
+          <section class="maze-row controller-band">
+            <div class="controller-band-copy">
+              <h3>Density feedback</h3>
+              <p>
+                Density feedback first computes a planar single-integrator
+                command for each agent. That command is then mapped to forward
+                speed and yaw rate through a desired heading. This makes the
+                method very fast and visually smooth, but the safety reasoning
+                happens in planar velocity space before the unicycle mapping.
+              </p>
+              <p>
+                For collision cone and velocity obstacle density, the feedback
+                controller uses relative velocity information from nearby
+                agents. We keep only the most relevant neighbors so the command
+                reacts to agents that can actually create a near-term collision.
+              </p>
+            </div>
+          </section>
+
+          <section class="maze-row controller-band">
+            <div class="controller-band-copy">
+              <h3>Density filter</h3>
+              <p>
+                Density filter starts from a nominal unicycle command and
+                solves a one-step constrained problem over \([v,\omega]\). It
+                changes the nominal only when the predicted next state would
+                violate the density condition. This is slower than feedback,
+                but it uses the exact unicycle step in the safety correction.
+              </p>
+              <p>
+                The multi-agent filter uses synchronous velocity snapshots:
+                every agent sees the same frozen neighbor velocities for that
+                timestep, solves its local filter, and then all agents advance
+                together. This keeps pairwise velocity-aware terms more
+                symmetric in crossing scenarios.
+              </p>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Scenario Comparisons</h2>
+        <p class="lead">
+          Each section fixes the scenario. Within each density construction,
+          the feedback result and filter result are shown side by side.
+        </p>
+        <div class="maze-gallery">
+          <section class="maze-row controller-band">
+            <h3>Crossing 2</h3>
+            <div class="scenario-note">
+              <h4>Two-agent crossing</h4>
+              <p>
+                Two agents swap positions through a single interaction point.
+                This is the cleanest case for seeing how relative velocity
+                changes the avoidance direction.
+              </p>
+            </div>
+            <div class="paired-video-groups">
+              <section class="paired-video-group">
+                <h4>Reactive bump</h4>
+                <div class="video-grid two">
+                  <article class="video-card"><h3>Feedback</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/multi_agent_unicycle_crossing2_reactive_density_feedback.mp4" type="video/mp4"></video></article>
+                  <article class="video-card"><h3>Filter</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/multi_agent_unicycle_crossing2_density_filter_reactive.mp4" type="video/mp4"></video></article>
+                </div>
+              </section>
+              <section class="paired-video-group">
+                <h4>Collision cone</h4>
+                <div class="video-grid two">
+                  <article class="video-card"><h3>Feedback</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/multi_agent_unicycle_crossing2_collision_cone_density_feedback.mp4" type="video/mp4"></video></article>
+                  <article class="video-card"><h3>Filter</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/multi_agent_unicycle_crossing2_density_filter_collision_cone.mp4" type="video/mp4"></video></article>
+                </div>
+              </section>
+              <section class="paired-video-group">
+                <h4>Velocity obstacle</h4>
+                <div class="video-grid two">
+                  <article class="video-card"><h3>Feedback</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/multi_agent_unicycle_crossing2_velocity_obstacle_density_feedback.mp4" type="video/mp4"></video></article>
+                  <article class="video-card"><h3>Filter</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/multi_agent_unicycle_crossing2_density_filter_velocity_obstacle.mp4" type="video/mp4"></video></article>
+                </div>
+              </section>
+            </div>
+          </section>
+
+          <section class="maze-row controller-band">
+            <h3>Crossing 4</h3>
+            <div class="scenario-note">
+              <h4>Four-agent crossing</h4>
+              <p>
+                Four agents share the same central interaction region. This
+                increases the number of simultaneous pairwise constraints while
+                keeping the geometry easy to read.
+              </p>
+            </div>
+            <div class="paired-video-groups">
+              <section class="paired-video-group">
+                <h4>Reactive bump</h4>
+                <div class="video-grid two">
+                  <article class="video-card"><h3>Feedback</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/multi_agent_unicycle_crossing4_reactive_density_feedback.mp4" type="video/mp4"></video></article>
+                  <article class="video-card"><h3>Filter</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/multi_agent_unicycle_crossing4_density_filter_reactive.mp4" type="video/mp4"></video></article>
+                </div>
+              </section>
+              <section class="paired-video-group">
+                <h4>Collision cone</h4>
+                <div class="video-grid two">
+                  <article class="video-card"><h3>Feedback</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/multi_agent_unicycle_crossing4_collision_cone_density_feedback.mp4" type="video/mp4"></video></article>
+                  <article class="video-card"><h3>Filter</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/multi_agent_unicycle_crossing4_density_filter_collision_cone.mp4" type="video/mp4"></video></article>
+                </div>
+              </section>
+              <section class="paired-video-group">
+                <h4>Velocity obstacle</h4>
+                <div class="video-grid two">
+                  <article class="video-card"><h3>Feedback</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/multi_agent_unicycle_crossing4_velocity_obstacle_density_feedback.mp4" type="video/mp4"></video></article>
+                  <article class="video-card"><h3>Filter</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/multi_agent_unicycle_crossing4_density_filter_velocity_obstacle.mp4" type="video/mp4"></video></article>
+                </div>
+              </section>
+            </div>
+          </section>
+
+          <section class="maze-row controller-band">
+            <h3>Crossing 6</h3>
+            <div class="scenario-note">
+              <h4>Six-agent crossing</h4>
+              <p>
+                Six agents create dense pairwise interactions near the center.
+                This case shows why nearest or most-dangerous neighbor
+                selection matters for keeping velocity-aware filters tractable.
+              </p>
+            </div>
+            <div class="paired-video-groups">
+              <section class="paired-video-group">
+                <h4>Reactive bump</h4>
+                <div class="video-grid two">
+                  <article class="video-card"><h3>Feedback</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/multi_agent_unicycle_crossing6_reactive_density_feedback.mp4" type="video/mp4"></video></article>
+                  <article class="video-card"><h3>Filter</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/multi_agent_unicycle_crossing6_density_filter_reactive.mp4" type="video/mp4"></video></article>
+                </div>
+              </section>
+              <section class="paired-video-group">
+                <h4>Collision cone</h4>
+                <div class="video-grid two">
+                  <article class="video-card"><h3>Feedback</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/multi_agent_unicycle_crossing6_collision_cone_density_feedback.mp4" type="video/mp4"></video></article>
+                  <article class="video-card"><h3>Filter</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/multi_agent_unicycle_crossing6_density_filter_collision_cone.mp4" type="video/mp4"></video></article>
+                </div>
+              </section>
+              <section class="paired-video-group">
+                <h4>Velocity obstacle</h4>
+                <div class="video-grid two">
+                  <article class="video-card"><h3>Feedback</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/multi_agent_unicycle_crossing6_velocity_obstacle_density_feedback.mp4" type="video/mp4"></video></article>
+                  <article class="video-card"><h3>Filter</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/multi_agent_unicycle_crossing6_density_filter_velocity_obstacle.mp4" type="video/mp4"></video></article>
+                </div>
+              </section>
+            </div>
+          </section>
+
+          <section class="maze-row controller-band">
+            <h3>Swap 8 opposite</h3>
+            <div class="scenario-note">
+              <h4>Diagonal swap</h4>
+              <p>
+                Agents swap with diagonally opposite goals. The interaction is
+                less synchronized than the crossing cases, but every agent
+                still has to negotiate several moving neighbors.
+              </p>
+            </div>
+            <div class="paired-video-groups">
+              <section class="paired-video-group">
+                <h4>Reactive bump</h4>
+                <div class="video-grid two">
+                  <article class="video-card"><h3>Feedback</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/multi_agent_unicycle_swap8_opposite_reactive_density_feedback.mp4" type="video/mp4"></video></article>
+                  <article class="video-card"><h3>Filter</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/multi_agent_unicycle_swap8_opposite_density_filter_reactive.mp4" type="video/mp4"></video></article>
+                </div>
+              </section>
+              <section class="paired-video-group">
+                <h4>Collision cone</h4>
+                <div class="video-grid two">
+                  <article class="video-card"><h3>Feedback</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/multi_agent_unicycle_swap8_opposite_collision_cone_density_feedback.mp4" type="video/mp4"></video></article>
+                  <article class="video-card"><h3>Filter</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/multi_agent_unicycle_swap8_opposite_density_filter_collision_cone.mp4" type="video/mp4"></video></article>
+                </div>
+              </section>
+              <section class="paired-video-group">
+                <h4>Velocity obstacle</h4>
+                <div class="video-grid two">
+                  <article class="video-card"><h3>Feedback</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/multi_agent_unicycle_swap8_opposite_velocity_obstacle_density_feedback.mp4" type="video/mp4"></video></article>
+                  <article class="video-card"><h3>Filter</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/multi_agent_unicycle_swap8_opposite_density_filter_velocity_obstacle.mp4" type="video/mp4"></video></article>
+                </div>
+              </section>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

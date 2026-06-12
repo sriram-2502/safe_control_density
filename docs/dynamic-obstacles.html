@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dynamic Obstacles · Safe Control Density</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"></script>
+    <script>
+      const dynMethodLabels = {
+        reactive: "Reactive bump",
+        collision_cone: "Collision cone",
+        velocity_obstacle: "Velocity obstacle"
+      };
+      const dynScenarioLabels = {
+        closing_in: "Closing in",
+        dense_flow: "Dense flow"
+      };
+      const dynControllerLabels = {
+        density_feedback: "Density feedback",
+        density_filter: "Density filter"
+      };
+      const dynRuns = {
+        density_feedback: {
+          reactive: {
+            closing_in: "dynamic_obstacles_closing_in_reactive_density_feedback.mp4",
+            dense_flow: "dynamic_obstacles_dense_flow_reactive_density_feedback.mp4",
+            dense_flow_local: "dynamic_obstacles_dense_flow_reactive_density_feedback_local_frame.mp4"
+          },
+          collision_cone: {
+            closing_in: "dynamic_obstacles_closing_in_collision_cone_density_feedback.mp4",
+            dense_flow: "dynamic_obstacles_dense_flow_collision_cone_density_feedback.mp4",
+            dense_flow_local: "dynamic_obstacles_dense_flow_collision_cone_density_feedback_local_frame.mp4"
+          },
+          velocity_obstacle: {
+            closing_in: "dynamic_obstacles_closing_in_velocity_obstacle_density_feedback.mp4",
+            dense_flow: "dynamic_obstacles_dense_flow_velocity_obstacle_density_feedback.mp4",
+            dense_flow_local: "dynamic_obstacles_dense_flow_velocity_obstacle_density_feedback_local_frame.mp4"
+          }
+        },
+        density_filter: {
+          reactive: {
+            closing_in: "dynamic_obstacles_closing_in_reactive_density_filter.mp4",
+            dense_flow: "dynamic_obstacles_dense_flow_reactive_density_filter.mp4",
+            dense_flow_local: "dynamic_obstacles_dense_flow_reactive_density_filter_local_frame.mp4"
+          },
+          collision_cone: {
+            closing_in: "dynamic_obstacles_closing_in_collision_cone_density_filter.mp4",
+            dense_flow: "dynamic_obstacles_dense_flow_collision_cone_density_filter.mp4",
+            dense_flow_local: "dynamic_obstacles_dense_flow_collision_cone_density_filter_local_frame.mp4"
+          },
+          velocity_obstacle: {
+            closing_in: "dynamic_obstacles_closing_in_velocity_obstacle_density_filter.mp4",
+            dense_flow: "dynamic_obstacles_dense_flow_velocity_obstacle_density_filter.mp4",
+            dense_flow_local: "dynamic_obstacles_dense_flow_velocity_obstacle_density_filter_local_frame.mp4"
+          }
+        }
+      };
+
+      function setDynamicRun() {
+        const controller = document.getElementById("dyn-controller").value;
+        const method = document.getElementById("dyn-method").value;
+        const scenario = document.getElementById("dyn-scenario").value;
+        const local = document.getElementById("dyn-local").checked;
+        const key = local && scenario === "dense_flow" ? "dense_flow_local" : scenario;
+        const file = dynRuns[controller][method][key];
+        const source = document.getElementById("dyn-video-source");
+        const video = document.getElementById("dyn-video");
+        source.src = `assets/videos/${file}`;
+        video.load();
+        video.play().catch(() => {});
+        document.getElementById("dyn-run-title").textContent =
+          `${dynScenarioLabels[scenario]} - ${dynControllerLabels[controller]} - ${dynMethodLabels[method]}`;
+        document.getElementById("dyn-run-description").textContent =
+          scenario === "closing_in"
+            ? "Eight moving obstacles close around the robot while the goal lies outside the surrounding group."
+            : local
+              ? "Local-frame view follows the robot through a dense random flow of moving obstacles."
+              : "Global view of cluttered random moving obstacles with an unobstructed target region.";
+        document.getElementById("dyn-local").disabled = scenario !== "dense_flow";
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: "$$", right: "$$", display: true },
+            { left: "\\(", right: "\\)", display: false }
+          ],
+          throwOnError: false
+        });
+        ["dyn-controller", "dyn-method", "dyn-scenario", "dyn-local"].forEach((id) => {
+          document.getElementById(id).addEventListener("change", setDynamicRun);
+        });
+        setDynamicRun();
+      });
+    </script>
+  </head>
+  <body class="dynamic-obstacles-page">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="index.html">Safe Control Density</a>
+        <nav class="nav-links" aria-label="Site navigation">
+          <a href="index.html">Home</a>
+          <a href="density-construction.html">Density Construction</a>
+          <a href="single-integrator.html">Holonomic</a>
+          <a href="unicycle.html">Non-Holonomic</a>
+          <a href="autonomous-racing.html">Racing</a>
+          <a href="maze.html">Maze</a>
+          <a href="multi-agent.html">Multi-Agent</a>
+          <a href="dynamic-obstacles.html">Dynamic Obstacles</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <h1>Dynamic Obstacles</h1>
+        <p class="subtitle">
+          Single-robot unicycle navigation through moving circular obstacles.
+          The examples compare reactive, collision-cone, and velocity-obstacle
+          density constructions under feedback and filter controllers.
+        </p>
+      </section>
+
+      <section class="section">
+        <h2>Setup</h2>
+        <p class="lead">
+          The robot uses the same unicycle dynamics as the non-holonomic
+          examples. Obstacles are moving disks with measured center \(p_j\),
+          radius \(r_j\), and velocity \(v_j\).
+        </p>
+        <div class="math-card">
+          $$
+          \dot p_x=v\cos\theta,\qquad
+          \dot p_y=v\sin\theta,\qquad
+          \dot\theta=\omega
+          $$
+          $$
+          p_j(t+\Delta t)=p_j(t)+\Delta t\,v_j(t),\qquad
+          R_j=r_{\mathrm{robot}}+r_j+r_{\mathrm{margin}}
+          $$
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Velocity-Aware Density</h2>
+        <p class="lead">
+          Dynamic obstacles need more than position. The reactive density sees
+          the obstacle disk, while collision-cone and velocity-obstacle density
+          also look at relative velocity.
+        </p>
+        <div class="method-grid three stacked-methods">
+          <article class="method-card">
+            <h3>Reactive moving bump</h3>
+            <p>
+              Each obstacle is treated as a moving circular density hole. This
+              works well when position is enough, but it can react late to fast
+              closing obstacles.
+            </p>
+            <div class="math-card">
+              $$\Phi_j=\beta(\|p-p_j\|;R_j,R_j+r_{\mathrm{sense}})$$
+            </div>
+          </article>
+          <article class="method-card diagram-card">
+            <h3>Collision cone</h3>
+            <svg class="mini-diagram" viewBox="0 0 260 180" role="img" aria-label="Dynamic obstacle collision cone">
+              <defs>
+                <marker id="dyn-arrow-blue" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                  <path d="M0,0 L8,4 L0,8 Z" fill="#276ef1"></path>
+                </marker>
+                <marker id="dyn-arrow-orange" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                  <path d="M0,0 L8,4 L0,8 Z" fill="#f97316"></path>
+                </marker>
+              </defs>
+              <path d="M72 112 L208 52 L210 172 Z" fill="#fef3c7" stroke="#d97706" stroke-width="2"></path>
+              <circle cx="72" cy="112" r="16" fill="#276ef1"></circle>
+              <circle cx="198" cy="112" r="18" fill="#9ca3af" stroke="#374151"></circle>
+              <line x1="72" y1="112" x2="132" y2="82" stroke="#276ef1" stroke-width="4" marker-end="url(#dyn-arrow-blue)"></line>
+              <line x1="198" y1="112" x2="166" y2="100" stroke="#f97316" stroke-width="4" marker-end="url(#dyn-arrow-orange)"></line>
+              <text x="50" y="145">robot</text>
+              <text x="162" y="145">obstacle</text>
+              <text x="140" y="42">collision cone</text>
+            </svg>
+            <p>
+              The cone is built from relative position and relative velocity.
+              If the relative velocity points into the cone, the density term
+              activates before the disks touch. The density obstacle term is
+              still a bump function: we multiply the spatial bump by a smooth
+              bump on the collision-cone margin.
+            </p>
+            <div class="math-card">
+              $$
+              \Phi_j^{\mathrm{cc}}
+              =\beta_{\mathrm{space}}(\|p-p_j\|)
+              \,\beta_{\mathrm{vel}}(h_{\mathrm{cc}})
+              $$
+              $$
+              h_{\mathrm{cc}}=p_{\mathrm{rel}}^\top v_{\mathrm{rel}}+\|p_{\mathrm{rel}}\|\|v_{\mathrm{rel}}\|\cos\phi
+              $$
+            </div>
+          </article>
+          <article class="method-card diagram-card">
+            <h3>Velocity obstacle</h3>
+            <svg class="mini-diagram" viewBox="0 0 260 180" role="img" aria-label="Dynamic velocity obstacle">
+              <defs>
+                <marker id="dyn-arrow-vo" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                  <path d="M0,0 L8,4 L0,8 Z" fill="#276ef1"></path>
+                </marker>
+              </defs>
+              <line x1="38" y1="138" x2="226" y2="138" stroke="#9ca3af"></line>
+              <line x1="58" y1="158" x2="58" y2="28" stroke="#9ca3af"></line>
+              <path d="M92 122 L218 62 L204 152 Z" fill="#fee2e2" stroke="#dc2626" stroke-width="2"></path>
+              <line x1="92" y1="122" x2="166" y2="74" stroke="#276ef1" stroke-width="4" marker-end="url(#dyn-arrow-vo)"></line>
+              <circle cx="92" cy="122" r="5" fill="#111827"></circle>
+              <text x="108" y="116">candidate velocity</text>
+              <text x="145" y="58">unsafe VO</text>
+              <text x="184" y="166">v_x</text>
+              <text x="30" y="42">v_y</text>
+            </svg>
+            <p>
+              The unsafe set is drawn in velocity space. The controller avoids
+              commands inside the cone even before the obstacle is close. We
+              wrap this velocity-space test in the same way: spatial bump times
+              smooth bump on the VO margin.
+            </p>
+            <div class="math-card">
+              $$
+              \Phi_j^{\mathrm{vo}}
+              =\beta_{\mathrm{space}}(\|p-p_j\|)
+              \,\beta_{\mathrm{vel}}(h_{\mathrm{vo}})
+              $$
+              $$
+              h_{\mathrm{vo}}=\max(\mathrm{cross}(\ell,v-v_j),\mathrm{cross}(v-v_j,r))
+              $$
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Interactive Result Viewer</h2>
+        <p class="lead">
+          Choose a scenario, density construction, and controller. Dense flow
+          also has a local-frame view that follows the robot so obstacle
+          interactions are easier to inspect.
+        </p>
+        <div class="interactive-panel result-viewer">
+          <div class="control-panel" aria-label="Dynamic obstacle result controls">
+            <label>
+              Scenario
+              <select id="dyn-scenario">
+                <option value="closing_in">Closing in</option>
+                <option value="dense_flow">Dense flow</option>
+              </select>
+            </label>
+            <label>
+              Controller
+              <select id="dyn-controller">
+                <option value="density_feedback">Density feedback</option>
+                <option value="density_filter" selected>Density filter</option>
+              </select>
+            </label>
+            <label>
+              Density
+              <select id="dyn-method">
+                <option value="reactive">Reactive bump</option>
+                <option value="collision_cone" selected>Collision cone</option>
+                <option value="velocity_obstacle">Velocity obstacle</option>
+              </select>
+            </label>
+            <label class="checkbox-label">
+              <input id="dyn-local" type="checkbox">
+              Local-frame dense-flow view
+            </label>
+            <div class="run-stats" aria-live="polite">
+              <h3 id="dyn-run-title"></h3>
+              <p id="dyn-run-description"></p>
+            </div>
+          </div>
+          <article class="video-card feature-video">
+            <video id="dyn-video" autoplay muted loop playsinline controls preload="metadata">
+              <source id="dyn-video-source" src="assets/videos/dynamic_obstacles_closing_in_collision_cone_density_filter.mp4" type="video/mp4">
+            </video>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Controller Gallery</h2>
+        <p class="lead">
+          Each section fixes the controller and shows the reactive bump,
+          collision-cone, and velocity-obstacle density constructions for the
+          closing-in and dense-flow scenarios.
+        </p>
+        <div class="maze-gallery">
+          <section class="maze-row controller-band">
+            <div class="controller-band-copy">
+              <h3>Density feedback</h3>
+              <p>
+                Density feedback builds a planar motion command from the
+                density field, then maps that command to unicycle forward speed
+                and yaw rate. It is the fastest controller in these examples:
+                the reactive bump uses only obstacle positions, while the
+                collision-cone and velocity-obstacle versions bias the planar
+                command using obstacle velocity. For dense moving scenes, the
+                controller evaluates only the nearest active obstacles instead
+                of every obstacle in the map. This keeps the computation small
+                and focuses the correction on obstacles that can affect the
+                next few seconds of motion.
+              </p>
+            </div>
+            <div class="scenario-note">
+              <h4>Closing in</h4>
+              <p>
+                This scenario surrounds the robot with obstacles that move
+                inward. We use it as a stress test for early velocity-aware
+                reactions: the controller should leave the closing group before
+                the free space collapses, not wait until the obstacles are
+                already tight.
+              </p>
+            </div>
+            <div class="video-grid three">
+              <article class="video-card"><h3>Closing in - reactive</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/dynamic_obstacles_closing_in_reactive_density_feedback.mp4" type="video/mp4"></video></article>
+              <article class="video-card"><h3>Closing in - collision cone</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/dynamic_obstacles_closing_in_collision_cone_density_feedback.mp4" type="video/mp4"></video></article>
+              <article class="video-card"><h3>Closing in - velocity obstacle</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/dynamic_obstacles_closing_in_velocity_obstacle_density_feedback.mp4" type="video/mp4"></video></article>
+            </div>
+
+            <div class="scenario-note">
+              <h4>Dense flow</h4>
+              <p>
+                Dense flow keeps the robot moving through a cluttered stream of
+                obstacles with different velocities. We show both the global
+                frame and a local frame: the global view shows task progress,
+                while the local view makes the short-range avoidance decisions
+                easier to see.
+              </p>
+            </div>
+            <div class="paired-video-groups">
+              <section class="paired-video-group">
+                <h4>Reactive</h4>
+                <div class="video-grid two">
+                  <article class="video-card"><h3>Global frame</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/dynamic_obstacles_dense_flow_reactive_density_feedback.mp4" type="video/mp4"></video></article>
+                  <article class="video-card"><h3>Local frame</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/dynamic_obstacles_dense_flow_reactive_density_feedback_local_frame.mp4" type="video/mp4"></video></article>
+                </div>
+              </section>
+              <section class="paired-video-group">
+                <h4>Collision cone</h4>
+                <div class="video-grid two">
+                  <article class="video-card"><h3>Global frame</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/dynamic_obstacles_dense_flow_collision_cone_density_feedback.mp4" type="video/mp4"></video></article>
+                  <article class="video-card"><h3>Local frame</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/dynamic_obstacles_dense_flow_collision_cone_density_feedback_local_frame.mp4" type="video/mp4"></video></article>
+                </div>
+              </section>
+              <section class="paired-video-group">
+                <h4>Velocity obstacle</h4>
+                <div class="video-grid two">
+                  <article class="video-card"><h3>Global frame</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/dynamic_obstacles_dense_flow_velocity_obstacle_density_feedback.mp4" type="video/mp4"></video></article>
+                  <article class="video-card"><h3>Local frame</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/dynamic_obstacles_dense_flow_velocity_obstacle_density_feedback_local_frame.mp4" type="video/mp4"></video></article>
+                </div>
+              </section>
+            </div>
+          </section>
+
+          <section class="maze-row controller-band">
+            <div class="controller-band-copy">
+              <h3>Density filter</h3>
+              <p>
+                Density filter keeps a nominal unicycle command in the loop and
+                solves a one-step constrained problem over \([v,\omega]\). The
+                optimizer stays close to the nominal command unless the next
+                predicted unicycle step would reduce the density condition too
+                much. In the dynamic-obstacle scripts, the filter uses a frozen
+                velocity snapshot for each timestep: obstacle positions and
+                velocities are read once, the command is solved, and then the
+                robot and obstacles are advanced together. This avoids the
+                artificial asymmetry that can appear when velocity information
+                changes halfway through a control update.
+              </p>
+              <p>
+                The filter also uses a small active-neighbor set. For ordinary
+                dense flow, nearest neighbors are enough and much cheaper than
+                checking every obstacle. For tightly surrounded cases, the
+                sensing radius and velocity-aware density terms help the filter
+                react before the obstacles physically close around the robot.
+                The local-frame videos do not change the controller; they only
+                move the camera with the robot so the obstacle interactions are
+                easier to inspect.
+              </p>
+            </div>
+            <div class="scenario-note">
+              <h4>Closing in</h4>
+              <p>
+                The filter version uses the same surrounded start, but now the
+                safety correction is solved directly over the unicycle inputs.
+                This highlights whether the one-step constrained solve can keep
+                moving toward the goal while dynamic obstacles close around the
+                robot.
+              </p>
+            </div>
+            <div class="video-grid three">
+              <article class="video-card"><h3>Closing in - reactive</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/dynamic_obstacles_closing_in_reactive_density_filter.mp4" type="video/mp4"></video></article>
+              <article class="video-card"><h3>Closing in - collision cone</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/dynamic_obstacles_closing_in_collision_cone_density_filter.mp4" type="video/mp4"></video></article>
+              <article class="video-card"><h3>Closing in - velocity obstacle</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/dynamic_obstacles_closing_in_velocity_obstacle_density_filter.mp4" type="video/mp4"></video></article>
+            </div>
+
+            <div class="scenario-note">
+              <h4>Dense flow</h4>
+              <p>
+                Dense flow tests repeated local replanning. The filter only
+                modifies the nominal command when the next predicted unicycle
+                step would violate the density condition, so the global and
+                local views show how much correction is needed as obstacles
+                enter and leave the active-neighbor set.
+              </p>
+            </div>
+            <div class="paired-video-groups">
+              <section class="paired-video-group">
+                <h4>Reactive</h4>
+                <div class="video-grid two">
+                  <article class="video-card"><h3>Global frame</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/dynamic_obstacles_dense_flow_reactive_density_filter.mp4" type="video/mp4"></video></article>
+                  <article class="video-card"><h3>Local frame</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/dynamic_obstacles_dense_flow_reactive_density_filter_local_frame.mp4" type="video/mp4"></video></article>
+                </div>
+              </section>
+              <section class="paired-video-group">
+                <h4>Collision cone</h4>
+                <div class="video-grid two">
+                  <article class="video-card"><h3>Global frame</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/dynamic_obstacles_dense_flow_collision_cone_density_filter.mp4" type="video/mp4"></video></article>
+                  <article class="video-card"><h3>Local frame</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/dynamic_obstacles_dense_flow_collision_cone_density_filter_local_frame.mp4" type="video/mp4"></video></article>
+                </div>
+              </section>
+              <section class="paired-video-group">
+                <h4>Velocity obstacle</h4>
+                <div class="video-grid two">
+                  <article class="video-card"><h3>Global frame</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/dynamic_obstacles_dense_flow_velocity_obstacle_density_filter.mp4" type="video/mp4"></video></article>
+                  <article class="video-card"><h3>Local frame</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/dynamic_obstacles_dense_flow_velocity_obstacle_density_filter_local_frame.mp4" type="video/mp4"></video></article>
+                </div>
+              </section>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
