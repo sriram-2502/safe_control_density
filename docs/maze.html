@@ -141,6 +141,35 @@
         </p>
       </section>
 
+      <section class="section compact">
+        <h2>Run</h2>
+        <div class="run-card">
+          <p>Run one maze controller; change the scenario or controller script to compare results.</p>
+          <pre><code>python examples/maze/density_feedback.py --scenario wide
+python examples/maze/density_filter.py --scenario rooms
+python examples/maze/density_mpc.py --scenario rooms</code></pre>
+        </div>
+      </section>
+
+      <section class="section compact">
+        <h2>System Dynamics</h2>
+        <p class="lead">
+          The maze examples use the same unicycle state and controls as the
+          non-holonomic page. A sparse A* path supplies waypoint references,
+          while each occupied maze cell is converted into a rectangular wall
+          obstacle inside the density function.
+        </p>
+        <div class="math-card">
+          $$
+          \begin{aligned}
+          x_{k+1} &= x_k+\Delta t\,v_k\cos\theta_k,\\
+          y_{k+1} &= y_k+\Delta t\,v_k\sin\theta_k,\\
+          \theta_{k+1} &= \theta_k+\Delta t\,\omega_k.
+          \end{aligned}
+          $$
+        </div>
+      </section>
+
       <section class="section">
         <p class="lead">
           Pick a maze and density based controller. The orange markers show the waypoint
@@ -234,7 +263,13 @@
           profile; Maze 4 highlights the filter failure case.
         </p>
 
-        <div class="maze-gallery">
+        <details class="expandable-gallery">
+          <summary>
+            <span>Show all maze configurations</span>
+            <small>8 mazes · 24 controller runs</small>
+          </summary>
+
+          <div class="maze-gallery">
           <section class="maze-row">
             <h3>Maze 1 - wide</h3>
             <div class="video-grid three">
@@ -306,7 +341,8 @@
               <article class="video-card"><h3>Density MPC</h3><video autoplay muted loop playsinline controls preload="metadata"><source src="assets/videos/maze_clutter_zigzag_density_mpc_success.mp4" type="video/mp4"></video></article>
             </div>
           </section>
-        </div>
+          </div>
+        </details>
       </section>
     </main>
   </body>

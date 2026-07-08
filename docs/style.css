@@ -261,6 +261,28 @@ h1 {
   box-shadow: none;
 }
 
+.publication-list {
+  display: grid;
+  gap: 18px;
+  max-width: 900px;
+  margin: 24px auto 0;
+}
+
+.publication-list .method-card {
+  box-shadow: 0 8px 22px rgb(18 32 54 / 5%);
+}
+
+.run-card {
+  max-width: 900px;
+  margin: 24px auto 0;
+}
+
+.run-card p {
+  margin: 0 0 12px;
+  color: var(--muted);
+  text-align: center;
+}
+
 .construction-box {
   max-width: 900px;
   margin: 24px auto 0;
@@ -718,6 +740,65 @@ pre {
 .status-pill.collision {
   background: #fff1f2;
   color: #be123c;
+}
+
+.expandable-gallery {
+  max-width: 100%;
+  margin-top: 24px;
+}
+
+.expandable-gallery summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 58px;
+  padding: 0 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgb(18 32 54 / 6%);
+  cursor: pointer;
+  list-style: none;
+  color: var(--ink);
+  font-weight: 750;
+}
+
+.expandable-gallery summary::-webkit-details-marker {
+  display: none;
+}
+
+.expandable-gallery summary::after {
+  content: "+";
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--accent-dark);
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.expandable-gallery[open] summary::after {
+  content: "−";
+}
+
+.expandable-gallery summary:hover {
+  border-color: #9eb5dc;
+}
+
+.expandable-gallery summary span {
+  font-size: 1.03rem;
+}
+
+.expandable-gallery summary small {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 650;
 }
 
 .maze-gallery {

@@ -148,14 +148,14 @@ closing-in obstacle setup, a denser cluttered flow, and a streaming-flow route
 that spawns randomized moving obstacles ahead of the robot.
 
 ```bash
-python examples/dynamic_obstacles/density_feedback/velocity_obstacle.py --scenario random_flow
+python examples/dynamic_obstacles/density_feedback/velocity_obstacle.py --scenario closing_in
 python examples/dynamic_obstacles/density_filter/velocity_obstacle.py --scenario closing_in
 ```
 
 <table>
 <tr>
-<td align="center"><b>Random flow - VO feedback</b><br><img src="examples/dynamic_obstacles/animations/density_feedback/dynamic_obstacles_random_flow_velocity_obstacle_density_feedback.gif" width="300" alt="Random flow velocity-obstacle density feedback"></td>
-<td align="center"><b>Random flow - VO filter</b><br><img src="examples/dynamic_obstacles/animations/density_filter/dynamic_obstacles_random_flow_velocity_obstacle_density_filter.gif" width="300" alt="Random flow velocity-obstacle density filter"></td>
+<td align="center"><b>Closing in - VO feedback</b><br><img src="examples/dynamic_obstacles/animations/density_feedback/dynamic_obstacles_closing_in_velocity_obstacle_density_feedback.gif" width="300" alt="Closing-in velocity-obstacle density feedback"></td>
+<td align="center"><b>Closing in - VO filter</b><br><img src="examples/dynamic_obstacles/animations/density_filter/dynamic_obstacles_closing_in_velocity_obstacle_density_filter.gif" width="300" alt="Closing-in velocity-obstacle density filter"></td>
 </tr>
 <tr>
 <td align="center"><b>Closing in - collision cone feedback</b><br><img src="examples/dynamic_obstacles/animations/density_feedback/dynamic_obstacles_closing_in_collision_cone_density_feedback.gif" width="300" alt="Closing-in collision-cone density feedback"></td>
@@ -166,8 +166,8 @@ python examples/dynamic_obstacles/density_filter/velocity_obstacle.py --scenario
 <td align="center"><b>Dense flow - VO filter</b><br><img src="examples/dynamic_obstacles/animations/density_filter/dynamic_obstacles_dense_flow_velocity_obstacle_density_filter.gif" width="300" alt="Dense-flow velocity-obstacle density filter"></td>
 </tr>
 <tr>
-<td align="center"><b>Streaming flow - VO feedback</b><br><img src="examples/dynamic_obstacles/animations/density_feedback/dynamic_obstacles_streaming_flow_velocity_obstacle_density_feedback.gif" width="300" alt="Streaming-flow velocity-obstacle density feedback"></td>
-<td align="center"><b>Streaming flow - VO filter</b><br><img src="examples/dynamic_obstacles/animations/density_filter/dynamic_obstacles_streaming_flow_velocity_obstacle_density_filter.gif" width="300" alt="Streaming-flow velocity-obstacle density filter"></td>
+<td align="center"><b>Dense flow local frame - VO feedback</b><br><img src="examples/dynamic_obstacles/animations/density_feedback/dynamic_obstacles_dense_flow_velocity_obstacle_density_feedback_local_frame.gif" width="300" alt="Dense-flow local-frame velocity-obstacle density feedback"></td>
+<td align="center"><b>Dense flow local frame - VO filter</b><br><img src="examples/dynamic_obstacles/animations/density_filter/dynamic_obstacles_dense_flow_velocity_obstacle_density_filter_local_frame.gif" width="300" alt="Dense-flow local-frame velocity-obstacle density filter"></td>
 </tr>
 </table>
 
@@ -288,4 +288,3 @@ making future position depend on the current steering command.
 
 - Examples print timing summaries such as `sim_time` and `avg_iteration`.
 - Most scripts support `--save-gif`, `--no-plot`, and `--steps`.
-- Long-horizon nonlinear MPC examples are for simulation studies, not hardware deployment.
