@@ -138,6 +138,22 @@
             </video>
           </div>
         </article>
+
+        <div class="controller-copy feedback-result-copy">
+          <p>
+            In the dynamic-obstacle closing-in setup, a unicycle robot moves
+            toward its goal while circular obstacles approach from multiple
+            directions. Collision-cone density feedback uses both relative
+            position and relative velocity, so the robot reacts to obstacles
+            that are on a future collision path rather than only to nearby
+            obstacle centers.
+          </p>
+        </div>
+        <article class="video-card wide controller-video feedback-result-video">
+          <video autoplay muted loop playsinline controls preload="metadata">
+            <source src="assets/videos/dynamic_obstacles_closing_in_collision_cone_density_feedback.mp4" type="video/mp4">
+          </video>
+        </article>
       </section>
 
       <section class="section controller-section full-controller-section density-filter-section">
@@ -187,6 +203,20 @@
           <article class="video-card wide controller-video">
             <video autoplay muted loop playsinline controls preload="metadata">
               <source src="assets/videos/unicycle_density_filter_sensing_radius_sweep.mp4" type="video/mp4">
+            </video>
+          </article>
+
+          <p>
+            In the multi-agent swap-8 setup, eight unicycle agents exchange
+            positions through a shared workspace. The nominal commands point
+            each agent toward its own goal, while the density filter applies
+            velocity-obstacle constraints so agents adjust their forward speed
+            and yaw rate before their relative motion becomes unsafe.
+          </p>
+
+          <article class="video-card wide controller-video section-result">
+            <video autoplay muted loop playsinline controls preload="metadata">
+              <source src="assets/videos/multi_agent_unicycle_swap8_opposite_density_filter_velocity_obstacle.mp4" type="video/mp4">
             </video>
           </article>
         </div>
@@ -261,6 +291,20 @@
           <article class="video-card mpc-video track-video">
             <video autoplay muted loop playsinline controls preload="metadata">
               <source src="assets/videos/density_mpc_Ltrack_bump.mp4" type="video/mp4">
+            </video>
+          </article>
+
+          <p>
+            In the cluttered zig-zag maze, the robot follows sparse A*
+            waypoints through staggered wall blocks. Density MPC reasons over
+            a short future horizon, which lets it trade immediate waypoint
+            tracking against future clearance and steer through the narrow
+            turns without relying on a purely local correction.
+          </p>
+
+          <article class="video-card wide controller-video section-result">
+            <video autoplay muted loop playsinline controls preload="metadata">
+              <source src="assets/videos/maze_clutter_zigzag_density_mpc_success.mp4" type="video/mp4">
             </video>
           </article>
         </div>
