@@ -27,16 +27,7 @@
     <header class="topbar">
       <div class="topbar-inner">
         <a class="brand" href="index.html">Safe Control Density</a>
-        <nav class="nav-links" aria-label="Site navigation">
-          <a href="index.html">Home</a>
-          <a href="density-construction.html">Density Construction</a>
-          <a href="single-integrator.html">Holonomic</a>
-          <a href="unicycle.html">Non-Holonomic</a>
-          <a href="autonomous-racing.html">Racing</a>
-          <a href="maze.html">Maze</a>
-          <a href="multi-agent.html">Multi-Agent</a>
-          <a href="dynamic-obstacles.html">Dynamic Obstacles</a>
-        </nav>
+        <a class="topbar-action" href="https://github.com/sriram-2502/safe_control_density">GitHub</a>
       </div>
     </header>
     <main>
@@ -53,13 +44,14 @@
         </div>
         <p class="affiliation">Clemson University</p>
         <nav class="actions" aria-label="Project links">
+          <a href="density-construction.html">Density Construction</a>
           <a href="single-integrator.html">Holonomic</a>
           <a href="unicycle.html">Non-Holonomic</a>
           <a href="autonomous-racing.html">Racing</a>
           <a href="maze.html">Maze</a>
           <a href="multi-agent.html">Multi-Agent</a>
           <a href="dynamic-obstacles.html">Dynamic Obstacles</a>
-          <a href="https://github.com/sriram-2502/safe_control_density">GitHub</a>
+          <a href="social-navigation.html">Social Navigation</a>
         </nav>
       </section>
 
@@ -75,7 +67,10 @@
           the theory into small reproducible simulations: single-integrator
           robots, unicycles with nonholonomic steering, and autonomous-racing. Overall, this research provides analytical density construction for safe navigation, extensions to time-varying obstacles and targets, and use as a high-level planner for more complex robots such as quadrupeds.
         </p>
-        </section>
+        <nav class="actions" aria-label="Source code">
+          <a href="https://github.com/sriram-2502/safe_control_density">GitHub</a>
+        </nav>
+      </section>
 
       <section class="section">
         <h2>Density Function Construction</h2>
@@ -123,7 +118,9 @@
             feedback controllers. For a single-integrator system, we use the
             positive gradient of the density function as the controller. The
             obstacle terms push density away from unsafe sets, while the target
-            term increases density near the goal.
+            term increases density near the goal. See the
+            <a href="single-integrator.html">holonomic navigation examples</a>
+            for static obstacles, local sensing, and safety-filter comparisons.
           </p>
           <div class="math-card">
             $$
@@ -146,12 +143,32 @@
             directions. Collision-cone density feedback uses both relative
             position and relative velocity, so the robot reacts to obstacles
             that are on a future collision path rather than only to nearby
-            obstacle centers.
+            obstacle centers. The
+            <a href="dynamic-obstacles.html">dynamic-obstacle experiments</a>
+            compare reactive, collision-cone, and velocity-obstacle density
+            constructions.
           </p>
         </div>
         <article class="video-card wide controller-video feedback-result-video">
           <video autoplay muted loop playsinline controls preload="metadata">
             <source src="assets/videos/dynamic_obstacles_closing_in_collision_cone_density_feedback.mp4" type="video/mp4">
+          </video>
+        </article>
+
+        <div class="controller-copy feedback-result-copy">
+          <p>
+            On the Unitree Go1, the same dynamic-obstacle framework identifies
+            nearby pedestrians online and updates a safe unicycle motion plan
+            at 10 Hz. Backstepping converts the plan into desired forward-speed
+            and yaw-rate commands, which a separate baseline locomotion
+            controller tracks on the quadruped. See the
+            <a href="social-navigation.html">social navigation experiments</a>
+            for the complete hardware setup and results.
+          </p>
+        </div>
+        <article class="video-card wide controller-video feedback-result-video">
+          <video autoplay muted loop playsinline controls preload="metadata">
+            <source src="assets/quadruped_videos/11-48_baseline.mp4" type="video/mp4">
           </video>
         </article>
       </section>
@@ -184,6 +201,8 @@
             setup, each obstacle contributes a density constraint, and the
             optimizer adjusts the forward-speed and yaw-rate command just enough
             to keep the next predicted state in a safe high-density direction.
+            See the <a href="unicycle.html">non-holonomic examples</a> for the
+            complete feedback, filter, MPC, and baseline comparisons.
           </p>
 
           <article class="video-card controller-video square-video home-compact-video">
@@ -211,7 +230,9 @@
             positions through a shared workspace. The nominal commands point
             each agent toward its own goal, while the density filter applies
             velocity-obstacle constraints so agents adjust their forward speed
-            and yaw rate before their relative motion becomes unsafe.
+            and yaw rate before their relative motion becomes unsafe. The
+            <a href="multi-agent.html">multi-agent navigation page</a> compares
+            the controllers across crossing and position-swap scenarios.
           </p>
 
           <article class="video-card wide controller-video section-result">
@@ -285,7 +306,16 @@
           </article>
 
           <p>
-            In the car racing example, Density MPC uses a unicycle-style vehicle model to predict the ego car’s motion over a short horizon. Each surrounding car defines its own density function, which suppresses unsafe regions around that vehicle. At every step, the MPC solves for the best steering and throttle/brake inputs that make progress along the track while satisfying the density constraints, allowing the ego car to overtake other cars in a safe and controlled manner.
+            In the car racing example, Density MPC uses a unicycle-style
+            vehicle model to predict the ego car’s motion over a short horizon.
+            Each surrounding car defines its own density function, which
+            suppresses unsafe regions around that vehicle. At every step, the
+            MPC solves for the best steering and throttle/brake inputs that
+            make progress along the track while satisfying the density
+            constraints, allowing the ego car to overtake other cars in a safe
+            and controlled manner. See the
+            <a href="autonomous-racing.html">autonomous-racing page</a> for the
+            vehicle model, track formulation, and complete results.
           </p>
 
           <article class="video-card mpc-video track-video">
@@ -299,7 +329,9 @@
             waypoints through staggered wall blocks. Density MPC reasons over
             a short future horizon, which lets it trade immediate waypoint
             tracking against future clearance and steer through the narrow
-            turns without relying on a purely local correction.
+            turns without relying on a purely local correction. The
+            <a href="maze.html">maze navigation page</a> compares density
+            feedback, filtering, and MPC across the full set of layouts.
           </p>
 
           <article class="video-card wide controller-video section-result">

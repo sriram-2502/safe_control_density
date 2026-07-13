@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Quadruped social navigation using safe control density on a Unitree Go1 in crowded dynamic environments.">
+    <title>Social Navigation · Safe Control Density</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: "$$", right: "$$", display: true },
+            { left: "\\(", right: "\\)", display: false }
+          ],
+          throwOnError: false
+        });
+      });
+    </script>
+  </head>
+  <body class="social-navigation-page">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="index.html">Safe Control Density</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <h1>Quadruped Social Navigation</h1>
+        <p class="subtitle">
+          Social navigation brings the dynamic-obstacle framework onto a
+          Unitree Go1 operating in crowded environments. People are identified
+          online and incorporated as moving obstacles. At 10 Hz, a high-level
+          planner models the robot as a unicycle and continuously updates a
+          safe motion plan so the robot can move through a crowd while
+          maintaining separation from nearby pedestrians. Backstepping
+          converts this plan into forward-velocity and yaw-rate commands, and
+          a separate baseline tracking controller, such as an MPC locomotion
+          controller, follows these commands on the quadruped.
+        </p>
+      </section>
+
+      <section class="section compact">
+        <h2>Run</h2>
+        <div class="run-card">
+          <p>
+            ROS 2 launch instructions, experiment code, and the complete robot
+            setup will be available on the full project page.
+          </p>
+          <nav class="actions" aria-label="Social navigation project link">
+            <!-- Replace # with the full project URL. -->
+            <a href="#">Full Project (Link Coming Soon)</a>
+          </nav>
+        </div>
+      </section>
+
+      <section class="section compact">
+        <h2>System Dynamics</h2>
+        <div class="math-card">
+          $$
+          \begin{aligned}
+          x_{k+1} &amp;= x_k+\Delta t\,v_k\cos\theta_k,\\
+          y_{k+1} &amp;= y_k+\Delta t\,v_k\sin\theta_k,\\
+          \theta_{k+1} &amp;= \theta_k+\Delta t\,\omega_k.
+          \end{aligned}
+          $$
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Density Feedback Controller</h2>
+        <p class="lead">
+          The planar density gradient gives a desired direction in \(x,y\).
+          The unicycle tracks that direction by choosing a forward speed and
+          yaw-rate command that align the heading with the density-gradient
+          direction.
+        </p>
+        <div class="math-card">
+          $$
+          \begin{aligned}
+          u_\rho(x_k,y_k) &amp;= k_\rho\nabla\rho(x_k,y_k),\\
+          v_k &amp;= \operatorname{sat}_{[0,v_{\max}]}\|u_\rho\|,\\
+          \theta_d &amp;= \operatorname{atan2}(u_{\rho,y},u_{\rho,x}),\\
+          \omega_k &amp;= \operatorname{sat}_{[-\omega_{\max},\omega_{\max}]}
+          \left(k_\theta\operatorname{wrap}(\theta_d-\theta_k)\right).
+          \end{aligned}
+          $$
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Robot Setup</h2>
+        <p class="lead">
+          The complete perception, planning, and control pipeline runs onboard
+          the robot through ROS 2.
+        </p>
+        <div class="method-grid">
+          <article class="method-card">
+            <h3>Unitree Go1</h3>
+            <p>
+              The Go1 provides the quadruped mobility platform. Its baseline
+              tracking controller receives the desired forward-velocity and
+              yaw-rate commands and executes them through the robot's
+              locomotion interface.
+            </p>
+          </article>
+          <article class="method-card">
+            <h3>Onboard perception and compute</h3>
+            <p>
+              A ZED 2i camera observes the space ahead of the robot, and an
+              NVIDIA Jetson AGX Orin performs the online perception and motion
+              planning computations.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Planning and Control</h2>
+        <p class="lead">
+          Each ROS 2 update identifies the current human obstacles and updates
+          the dynamic environment. The 10 Hz high-level planner then produces
+          a safe unicycle motion plan, backstepping converts that plan into
+          desired velocity commands, and a separate baseline controller tracks
+          those commands on the Go1.
+        </p>
+        <div class="method-grid three">
+          <article class="method-card">
+            <h3>1. Perception</h3>
+            <p>
+              The ZED 2i supplies the observations used to identify nearby
+              people online and represent them as moving obstacles.
+            </p>
+          </article>
+          <article class="method-card">
+            <h3>2. Unicycle planning and backstepping</h3>
+            <p>
+              At 10 Hz, the dynamic-obstacle planner models the Go1 as a
+              unicycle and updates a safe motion plan around the detected
+              pedestrians. Backstepping converts this plan into desired
+              forward-speed \(v\) and yaw-rate \(\omega\) commands.
+            </p>
+          </article>
+          <article class="method-card">
+            <h3>3. Baseline command tracking</h3>
+            <p>
+              A separate lower-level tracking controller, such as an
+              MPC-based locomotion controller, follows the commanded \(v\) and
+              \(\omega\) on the physical Go1.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Hardware Experiments</h2>
+        <p class="lead">
+          Four runs demonstrate the Go1 navigating among moving pedestrians.
+          Each synchronized dashboard combines the third-person experiment,
+          onboard camera view, local planning view, commanded forward speed
+          and yaw rate, and closest-pedestrian distance.
+        </p>
+        <div class="video-stack social-results">
+          <article class="video-card wide">
+            <h3>Crowded navigation — Run 1</h3>
+            <video autoplay muted loop playsinline controls preload="metadata">
+              <source src="assets/quadruped_videos/11-23_baseline.mp4" type="video/mp4">
+            </video>
+          </article>
+          <article class="video-card wide">
+            <h3>Crowded navigation — Run 2</h3>
+            <video autoplay muted loop playsinline controls preload="metadata">
+              <source src="assets/quadruped_videos/11-48_baseline.mp4" type="video/mp4">
+            </video>
+          </article>
+          <article class="video-card wide">
+            <h3>Crowded navigation — Run 3</h3>
+            <video autoplay muted loop playsinline controls preload="metadata">
+              <source src="assets/quadruped_videos/11-51_baseline.mp4" type="video/mp4">
+            </video>
+          </article>
+          <article class="video-card wide">
+            <h3>Crowded navigation — Run 4</h3>
+            <video autoplay muted loop playsinline controls preload="metadata">
+              <source src="assets/quadruped_videos/12-05_baseline.mp4" type="video/mp4">
+            </video>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="full-project">
+        <h2>Full Project</h2>
+        <p class="lead">
+          Additional implementation details, software, and experiment results
+          will be available with the complete project.
+        </p>
+        <nav class="actions" aria-label="Full project link">
+          <!-- Replace # with the full project URL. -->
+          <a href="#">Full Project (Link Coming Soon)</a>
+        </nav>
+      </section>
+    </main>
+  </body>
+</html>
